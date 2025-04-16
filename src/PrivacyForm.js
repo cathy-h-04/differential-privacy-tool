@@ -8,6 +8,7 @@ const addLaplaceNoise = (value, epsilon) => {
 };
 
 const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
+    // TODO: FIX THIS FXN
     const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
     const random = Math.random();
   
@@ -20,7 +21,7 @@ const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
   };
 
 export default function PrivacyForm() {
-  const [formData, setFormData] = useState({ timeOnPage: '', clicks: '', scrollDepth: '', incomeBin: '' });
+  const [formData, setFormData] = useState({incomeBin: '', netWorth: '', rentOrMortgage: '', loanDebt: '', medicalExpenses: ''});
   const [epsilon, setEpsilon] = useState(1.0);
   const [privatizedData, setPrivatizedData] = useState(null);
 
@@ -46,10 +47,11 @@ export default function PrivacyForm() {
     const trueBin = parseInt(formData.incomeBin);
     const numBins = 5;
     const noisyData = {
-      timeOnPage: addLaplaceNoise(formData.timeOnPage, epsilon),
-      clicks: addLaplaceNoise(formData.clicks, epsilon),
-      scrollDepth: addLaplaceNoise(formData.scrollDepth, epsilon),
       incomeBin: randomizedResponseBinned(trueBin, epsilon, numBins),
+      netWorth: addLaplaceNoise(formData.netWorth, epsilon),
+      rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
+      loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
+      medicalExpenses: addLaplaceNoise(formData.medicalExpenses, epsilon),
     };
     setPrivatizedData(noisyData);
   };
@@ -59,12 +61,12 @@ export default function PrivacyForm() {
       <h1 className="text-2xl font-bold">Privacy-Preserving Data Collector</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block">
-          Time on Page (seconds)
+      <label className="block">
+          Net Worth (USD)
           <input
             type="number"
-            name="timeOnPage"
-            value={formData.timeOnPage}
+            name="netWorth"
+            value={formData.netWorth}
             onChange={handleChange}
             className="w-full p-2 mt-1 border rounded"
             required
@@ -72,11 +74,11 @@ export default function PrivacyForm() {
         </label>
 
         <label className="block">
-          Clicks
+          Monthly Rent or Mortgage (USD)
           <input
             type="number"
-            name="clicks"
-            value={formData.clicks}
+            name="rentOrMortgage"
+            value={formData.rentOrMortgage}
             onChange={handleChange}
             className="w-full p-2 mt-1 border rounded"
             required
@@ -84,11 +86,23 @@ export default function PrivacyForm() {
         </label>
 
         <label className="block">
-          Scroll Depth (%)
+          Outstanding Loan Debt (USD)
           <input
             type="number"
-            name="scrollDepth"
-            value={formData.scrollDepth}
+            name="loanDebt"
+            value={formData.loanDebt}
+            onChange={handleChange}
+            className="w-full p-2 mt-1 border rounded"
+            required
+          />
+        </label>
+
+        <label className="block">
+          Annual Medical Expenses (USD)
+          <input
+            type="number"
+            name="medicalExpenses"
+            value={formData.medicalExpenses}
             onChange={handleChange}
             className="w-full p-2 mt-1 border rounded"
             required
