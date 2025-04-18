@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+// export NODE_OPTIONS=--openssl-legacy-provider
+// npm start
 // Laplace mechanism helper
 const addLaplaceNoise = (value, epsilon) => {
   const scale = 1 / epsilon;
@@ -11,14 +13,40 @@ const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
     // TODO: FIX THIS FXN
     const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
     const random = Math.random();
-  
+
     if (random < p) {
       return trueBin;
-    } else {
-      const otherBins = [...Array(numBins).keys()].filter(b => b !== trueBin);
-      return otherBins[Math.floor(Math.random() * otherBins.length)];
-    }
+    } 
+    const otherBins = [...Array(numBins).keys()].filter(b => b !== trueBin);
+    return otherBins[Math.floor(Math.random() * otherBins.length)];
+    
   };
+
+const exponentialRandomNoise = (trueBin, epsilon, numBins) => {
+  const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
+  const actualValue = centerBin[trueBin];
+  const utilityValue = (a,b) => -(Math.abs(a-b));
+  const scoreValue = centerBin.map(value => Math.exp((epsilon*utilityValue(actualValue, value))/2.));
+  //from here, we need to find the probability of each bin
+  let probTotal = 0;
+  for (const score of scoreValue){
+    probTotal += score;
+  }
+  const prob = scoreValue.map(scoreValue => scoreValue/probTotal)
+ 
+  const random = Math.random();
+  let val = 0
+  console.log(prob, random)
+  for (let i=0; i < prob.length; i++){
+    val += prob[i]
+    if (val >= random){
+      return i
+    }
+  }
+
+
+}
+
 
 export default function PrivacyForm() {
   const [formData, setFormData] = useState({incomeBin: '', netWorth: '', rentOrMortgage: '', loanDebt: '', medicalExpenses: ''});
@@ -30,24 +58,37 @@ export default function PrivacyForm() {
     "$20k–$40k",
     "$40k–$60k",
     "$60k–$100k",
-    "More than $100k"
+    "100k-200k",
+    "200k-300k",
+    "300k-400k",
+    "400k-500k",
+    ">500k"
   ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'incomeBin' ? value : parseFloat(value),
+      [name]: name === 'income' ? value : parseFloat(value),
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const trueBin = parseInt(formData.incomeBin);
+    const incomeBin = parseFloat(formData.incomeBin);
     const numBins = 5;
+    let noisy_income;
+    console.log(formData.dp_mechanism)
+    if (formData.dp_mechanism == 0){
+      noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
+    }
+    else if (formData.dp_mechanism == 1){
+     noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
+    }
+    console.log(noisy_income)
     const noisyData = {
-      incomeBin: randomizedResponseBinned(trueBin, epsilon, numBins),
+      incomeBin: Math.floor(noisy_income),
       netWorth: addLaplaceNoise(formData.netWorth, epsilon),
       rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
       loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
@@ -109,6 +150,18 @@ export default function PrivacyForm() {
           />
         </label>
 
+        {/* <label className="block">
+          Income
+          <input
+            type="number"
+            name="loanDebt"
+            value={formData.income}
+            onChange={handleChange}
+            className="w-full p-2 mt-1 border rounded"
+            required
+          />
+        </label> */}
+
         <label className="block">
             Income Range
             <select
@@ -123,9 +176,13 @@ export default function PrivacyForm() {
                 <option value="1">$20k–$40k</option>
                 <option value="2">$40k–$60k</option>
                 <option value="3">$60k–$100k</option>
-                <option value="4">More than $100k</option>
+                <option value="4">100k-200k</option>
+                <option value="5">200k-300k</option>
+                <option value="6">300k-400k</option>
+                <option value="7">400k-500k</option>
+                <option value="8">&gt; 500k</option>
             </select>
-            </label>
+        </label>
 
         <label className="block">
           Privacy Level (ε)
@@ -139,6 +196,21 @@ export default function PrivacyForm() {
             className="w-full mt-1"
           />
           <span className="text-sm text-gray-600">Epsilon: {epsilon}</span>
+        </label>
+
+        <label className="block">
+          DP Mechanism
+          <select
+            name="dp_mechanism"
+            value={formData.dp_mechanism}
+            onChange={handleChange}
+            className="w-full p-2 mt-1 border rounded"
+            required
+          >
+            <option value="">Select</option>
+            <option value="0">Randomized Response</option>
+            <option value="1">Exponential</option>
+          </select>
         </label>
 
         <button
@@ -165,3 +237,5 @@ export default function PrivacyForm() {
     </div>
   );
 }
+
+
