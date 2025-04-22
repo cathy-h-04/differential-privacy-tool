@@ -26,7 +26,8 @@ const exponentialRandomNoise = (trueBin, epsilon, numBins) => {
   const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
   const actualValue = centerBin[trueBin];
   const utilityValue = (a,b) => -(Math.abs(a-b));
-  const scoreValue = centerBin.map(value => Math.exp((epsilon*utilityValue(actualValue, value))/2.));
+  //the formula for the score function in this case is exp(epsilon*utility/2*change in u) where change in u is the sesntivity of utility function. 
+  const scoreValue = centerBin.map(value => Math.exp((epsilon*utilityValue(actualValue, value))/740000));
   //from here, we need to find the probability of each bin
   let probTotal = 0;
   for (const score of scoreValue){
@@ -43,8 +44,6 @@ const exponentialRandomNoise = (trueBin, epsilon, numBins) => {
       return i
     }
   }
-
-
 }
 
 
