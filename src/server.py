@@ -18,4 +18,4 @@ def laplace():
     return jsonify({'netWorthDP': dp_val})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
