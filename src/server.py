@@ -12,7 +12,7 @@ def laplace():
     net_worth = float(data.get('netWorth'))
     epsilon = data.get('epsilon')
 
-    laplace = dp.m.then_laplace(scale = 1/epsilon)
+    laplace = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale = 1/epsilon)
     dp_val = laplace(net_worth)
 
     return jsonify({'netWorthDP': dp_val})
