@@ -36,3 +36,24 @@
     transform: rotate(360deg);
   }
 }
+
+input[type="number"], select {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="number"]:focus, select:focus {
+  border-color: #2563eb; /* blue-600 */
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  outline: none;
+}
+
+button[type="submit"] {
+  transition: background 0.2s, box-shadow 0.2s;
+}
+button[type="submit"]:hover {
+  background: #2563eb; /* blue-700 */
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.15);
+}
+
+.bg-white.shadow-md.rounded-xl {
+  box-shadow: 0 6px 24px 0 rgba(0,0,0,0.08);
+}

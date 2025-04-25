@@ -113,139 +113,136 @@ export default function PrivacyForm() {
 
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-md rounded-xl space-y-6">
-      <h1 className="text-2xl font-bold">Privacy-Preserving Data Collector</h1>
+      <header className="mb-6 text-center">
+        <h1 className="text-3xl font-extrabold text-blue-700 mb-2">Privacy-Preserving Data Collector</h1>
+        <p className="text-gray-600 text-base max-w-md mx-auto">Fill out the form below to submit your financial information with privacy protection. Your data will be privatized using differential privacy techniques before being processed.</p>
+      </header>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-      <label className="block">
-          Net Worth (USD)
-          <input
-            type="number"
-            name="netWorth"
-            value={formData.netWorth}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2 border-b pb-1">Financial Information</h2>
+          <label className="block mt-4">
+            Net Worth (USD)
+            <input
+              type="number"
+              name="netWorth"
+              value={formData.netWorth}
+              onChange={handleChange}
+              className="w-full p-2 mt-1 border rounded"
+              required
+            />
+          </label>
 
-        <label className="block">
-          Monthly Rent or Mortgage (USD)
-          <input
-            type="number"
-            name="rentOrMortgage"
-            value={formData.rentOrMortgage}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
+          <label className="block">
+            Monthly Rent or Mortgage (USD)
+            <input
+              type="number"
+              name="rentOrMortgage"
+              value={formData.rentOrMortgage}
+              onChange={handleChange}
+              className="w-full p-2 mt-1 border rounded"
+              required
+            />
+          </label>
 
-        <label className="block">
-          Outstanding Loan Debt (USD)
-          <input
-            type="number"
-            name="loanDebt"
-            value={formData.loanDebt}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
+          <label className="block">
+            Outstanding Loan Debt (USD)
+            <input
+              type="number"
+              name="loanDebt"
+              value={formData.loanDebt}
+              onChange={handleChange}
+              className="w-full p-2 mt-1 border rounded"
+              required
+            />
+          </label>
 
-        <label className="block">
-          Annual Medical Expenses (USD)
-          <input
-            type="number"
-            name="medicalExpenses"
-            value={formData.medicalExpenses}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
+          <label className="block">
+            Annual Medical Expenses (USD)
+            <input
+              type="number"
+              name="medicalExpenses"
+              value={formData.medicalExpenses}
+              onChange={handleChange}
+              className="w-full p-2 mt-1 border rounded"
+              required
+            />
+          </label>
 
-        {/* <label className="block">
-          Income
-          <input
-            type="number"
-            name="loanDebt"
-            value={formData.income}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label> */}
-
-        <label className="block">
+          <label className="block">
             Income Range
             <select
-                name="incomeBin"
-                value={formData.incomeBin}
-                onChange={handleChange}
-                className="w-full p-2 mt-1 border rounded"
-                required
+              name="incomeBin"
+              value={formData.incomeBin}
+              onChange={handleChange}
+              className="w-full p-2 mt-1 border rounded"
+              required
             >
-                <option value="">Select</option>
-                <option value="0">Less than $20k</option>
-                <option value="1">$20k–$40k</option>
-                <option value="2">$40k–$60k</option>
-                <option value="3">$60k–$100k</option>
-                <option value="4">100k-200k</option>
-                <option value="5">200k-300k</option>
-                <option value="6">300k-400k</option>
-                <option value="7">400k-500k</option>
-                <option value="8">&gt; 500k</option>
+              <option value="">Select</option>
+              <option value="0">Less than $20k</option>
+              <option value="1">$20k–$40k</option>
+              <option value="2">$40k–$60k</option>
+              <option value="3">$60k–$100k</option>
+              <option value="4">100k-200k</option>
+              <option value="5">200k-300k</option>
+              <option value="6">300k-400k</option>
+              <option value="7">400k-500k</option>
+              <option value="8">&gt; 500k</option>
             </select>
-        </label>
+          </label>
+        </div>
 
-        <label className="block">
-          Privacy Level (ε)
-          <input
-            type="range"
-            min="0.1"
-            max="100"
-            step="0.1"
-            value={epsilon}
-            onChange={(e) => setEpsilon(parseFloat(e.target.value))}
-            className="w-full mt-1"
-          />
-          <span className="text-sm text-gray-600">Epsilon: {epsilon}</span>
-        </label>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2 mt-6 border-b pb-1">Privacy Settings</h2>
+          <label className="block mt-4">
+            Privacy Level (ε)
+            <input
+              type="range"
+              min="0.1"
+              max="100"
+              step="0.1"
+              value={epsilon}
+              onChange={(e) => setEpsilon(parseFloat(e.target.value))}
+              className="w-full mt-1"
+            />
+            <span className="text-sm text-gray-600">Epsilon: {epsilon}</span>
+          </label>
 
-        <label className="block">
-          DP Mechanism
-          <select
-            name="dp_mechanism"
-            value={formData.dp_mechanism}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          >
-            <option value="">Select</option>
-            <option value="0">Randomized Response</option>
-            <option value="1">Exponential</option>
-          </select>
-        </label>
+          <label className="block">
+            DP Mechanism
+            <select
+              name="dp_mechanism"
+              value={formData.dp_mechanism}
+              onChange={handleChange}
+              className="w-full p-2 mt-1 border rounded"
+              required
+            >
+              <option value="">Select</option>
+              <option value="0">Randomized Response</option>
+              <option value="1">Exponential</option>
+            </select>
+          </label>
+        </div>
 
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mt-4 w-full font-semibold text-lg shadow"
         >
           Submit
         </button>
       </form>
 
       {privatizedData && (
-        <div className="mt-6 p-4 bg-gray-100 rounded">
-          <h2 className="text-lg font-semibold mb-2">Privatized Output</h2>
-          <pre className="text-sm mb-2">
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded shadow-sm">
+          <h2 className="text-lg font-semibold mb-2 text-blue-700">Privatized Output</h2>
+          <pre className="text-sm mb-2 font-mono text-gray-800 bg-blue-100 p-2 rounded overflow-x-auto">
             {JSON.stringify(privatizedData, null, 2)}
-            </pre>
-            {typeof privatizedData.incomeBin === 'number' && (
+          </pre>
+          {typeof privatizedData.incomeBin === 'number' && (
             <p className="text-sm text-gray-700">
-                Privatized Income Bin: {incomeLabels[privatizedData.incomeBin]}
+              Privatized Income Bin: <span className="font-semibold text-blue-800">{incomeLabels[privatizedData.incomeBin]}</span>
             </p>
-            )}
+          )}
         </div>
       )}
     </div>
