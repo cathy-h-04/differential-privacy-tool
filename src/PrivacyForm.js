@@ -72,13 +72,27 @@ export default function PrivacyForm() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const incomeBin = parseFloat(formData.incomeBin);
+    // CHANGE NUMBINS
     const numBins = 5;
+
+    const testing_open_dp = {
+      netWorth: formData.netWorth,
+      epsilon: epsilon
+    }
+    const flask_response = await fetch('http://localhost:5000/laplace',{
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testing_open_dp)
+    });
+    const open_dp_data = await flask_response.json();
+
     let noisy_income;
-    console.log(formData.dp_mechanism)
     if (formData.dp_mechanism == 0){
       noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
     }
@@ -88,7 +102,8 @@ export default function PrivacyForm() {
     console.log(noisy_income)
     const noisyData = {
       incomeBin: Math.floor(noisy_income),
-      netWorth: addLaplaceNoise(formData.netWorth, epsilon),
+      netWorth: open_dp_data.netWorthDP,
+      //netWorth: addLaplaceNoise(formData.netWorth, epsilon),
       rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
       loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
       medicalExpenses: addLaplaceNoise(formData.medicalExpenses, epsilon),
