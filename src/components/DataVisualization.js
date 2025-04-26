@@ -2,10 +2,10 @@ import React from 'react';
 import { FaChartBar, FaChartLine, FaChartPie } from 'react-icons/fa';
 import Card from './Card';
 
-export default function DataVisualization({ data, epsilon }) {
-  if (!data) return null;
+export default function DataVisualization({ privatizedData, epsilon }) {
+  if (!privatizedData) return null;
 
-  const { incomeBin, netWorth, rentOrMortgage, loanDebt, medicalExpenses } = data;
+  const { incomeBin, netWorth, rentOrMortgage, loanDebt, medicalExpenses } = privatizedData;
 
   const incomeLabels = [
     "Less than $20k",
