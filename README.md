@@ -1,4 +1,5 @@
 # CS2080project
+<<<<<<< HEAD
 
 HOW TO RUN THE PROJECT:
 
