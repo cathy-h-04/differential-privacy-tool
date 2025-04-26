@@ -1,287 +1,206 @@
 import React, { useState } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Grid, 
-  Slider, 
-  Tooltip, 
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Box,
-  Button
-} from '@mui/material';
-import { InfoOutlined } from '@mui/icons-material';
-import '../../App.css';
+import { FaLock, FaInfoCircle } from 'react-icons/fa';
+import { usePrivacyForm } from '../hooks/usePrivacyForm';
 
-// Differential Privacy helpers
-function addLaplaceNoise(value, epsilon) {
-  const scale = 1 / epsilon;
-  const u = Math.random() - 0.5;
-  return value - scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
-}
+const incomeLabels = [
+  'Under $25,000',
+  '$25,000 - $50,000',
+  '$50,000 - $75,000',
+  '$75,000 - $100,000',
+  '$100,000 - $150,000',
+  'Over $150,000'
+];
 
-function randomizedResponseBinned(trueBin, epsilon, numBins) {
-  const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
-  if (Math.random() < p) return trueBin;
-  const other = [...Array(numBins).keys()].filter((b) => b !== trueBin);
-  return other[Math.floor(Math.random() * other.length)];
-}
+export default function PrivacyForm({ onDataSubmit }) {
+  const {
+    formData,    setFormData,
+    handleSubmit,
+    error,
+    isSubmitting,
+    privacyLevel,
+    epsilon,
+    setEpsilon,
+    mechanism,
+    setMechanism
+  } = usePrivacyForm();
 
-function exponentialRandomNoise(trueBin, epsilon, numBins) {
-  const centerBins = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
-  const actual = centerBins[trueBin];
-  const sensitivity = Math.max(...centerBins) - Math.min(...centerBins);
-  const scores = centerBins.map((v) => Math.exp((-epsilon * Math.abs(v - actual)) / sensitivity));
-  const total = scores.reduce((sum, s) => sum + s, 0);
-  const probs = scores.map((s) => s / total);
-  let r = Math.random();
-  for (let i = 0; i < probs.length; i++) {
-    r -= probs[i];
-    if (r <= 0) return i;
-  }
-  return probs.length - 1;
-}
-
-export default function PrivacyForm() {
-  const [formData, setFormData] = useState({
-    incomeBin: '',
-    netWorth: '',
-    rentOrMortgage: '',
-    loanDebt: '',
-    medicalExpenses: ''
-  });
-  const [epsilon, setEpsilon] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [privatizedData, setPrivatizedData] = useState(null);
-
-  const incomeLabels = [
-    "Less than $20k",
-    "$20k–$40k",
-    "$40k–$60k",
-    "$60k–$100k",
-    "100k-200k",
-    "200k-300k",
-    "300k-400k",
-    "400k-500k",
-    ">500k"
-  ];
-
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    setFormData(prev => ({
+      ...prev,
+      [name]: parseFloat(value) || 0
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-
-    try {
-      // Simulate an API call
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ data: 'success' });
-        }, 1000);
-      });
-
-      if (response.data === 'success') {
-        // Here you would normally handle the response data
-        setPrivatizedData(formData);
-        setFormData({
-          incomeBin: '',
-          netWorth: '',
-          rentOrMortgage: '',
-          loanDebt: '',
-          medicalExpenses: ''
-        });
-      }
-    } catch (err) {
-      setError('An error occurred while submitting the form.');
-    } finally {
-      setIsSubmitting(false);
+  const getPrivacyLevelColor = (level) => {
+    switch (level) {
+      case 'Low': return 'text-red-500';
+      case 'Medium': return 'text-yellow-500';
+      case 'High': return 'text-green-500';
+      default: return 'text-gray-500';
     }
   };
 
-  const getPrivacyLevelColor = (epsilon) => {
-    if (epsilon < 0.5) return 'success.main';
-    if (epsilon < 1.5) return 'warning.main';
-    return 'error.main';
-  };
-
   return (
-    <Box 
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%)',
-        padding: 3
-      }}
-    >
-      <Card sx={{ maxWidth: 800, width: '100%', mb: 4, boxShadow: 3 }}>
-        <CardContent>
-          <Typography variant="h4" gutterBottom color="primary" sx={{ mb: 3 }}>
-            Differential Privacy Demo
-          </Typography>
-          
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Financial Information Section */}
-              <Grid item xs={12}>
-                <Typography variant="h5" gutterBottom color="primary">
-                  Financial Information
-                </Typography>
-              </Grid>
-              
-              {['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses'].map((key) => (
-                <Grid item xs={12} sm={6} key={key}>
-                  <TextField
-                    fullWidth
-                    label={key === 'netWorth'
-                      ? 'Net Worth (USD)'
-                      : key === 'rentOrMortgage'
-                      ? 'Monthly Rent or Mortgage (USD)'
-                      : key === 'loanDebt'
-                      ? 'Outstanding Loan Debt (USD)'
-                      : 'Annual Medical Expenses (USD)'}
-                    type="number"
-                    name={key}
-                    value={formData[key]}
-                    onChange={handleChange}
-                    required
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-              ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Financial Information</h2>
+        <div className="flex items-center space-x-2">
+          <FaLock className={`text-lg ${getPrivacyLevelColor(privacyLevel)}`} />
+          <span className={`font-semibold ${getPrivacyLevelColor(privacyLevel)}`}>
+            {privacyLevel} Privacy
+          </span>
+        </div>
+      </div>
 
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Income Range</InputLabel>
-                  <Select
-                    name="incomeBin"
-                    value={formData.incomeBin}
-                    onChange={handleChange}
-                    required
-                  >
-                    {incomeLabels.map((label, index) => (
-                      <MenuItem key={index} value={index}>{label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Net Worth
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+              <input
+                type="number"
+                name="netWorth"
+                value={formData.netWorth}
+                onChange={handleInputChange}
+                className="pl-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
 
-              {/* Privacy Settings Section */}
-              <Grid item xs={12}>
-                <Typography variant="h5" gutterBottom color="primary" sx={{ mt: 2 }}>
-                  Privacy Settings
-                </Typography>
-              </Grid>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Rent/Mortgage
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+              <input
+                type="number"
+                name="rentOrMortgage"
+                value={formData.rentOrMortgage}
+                onChange={handleInputChange}
+                className="pl-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
 
-              <Grid item xs={12}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                  <Typography>Privacy Level (ε)</Typography>
-                  <Tooltip title="Lower ε means more privacy but less accuracy. Higher ε means more accuracy but less privacy.">
-                    <InfoOutlined sx={{ ml: 1, fontSize: '1rem', color: 'text.secondary' }} />
-                  </Tooltip>
-                </Box>
-                <Tooltip 
-                  title={`Current privacy protection: ${epsilon < 0.5 ? 'Maximum' : epsilon < 1.5 ? 'High' : 'Medium'}`}
-                  arrow
-                  placement="top"
-                >
-                  <Slider
-                    value={epsilon}
-                    min={0.1}
-                    max={5}
-                    step={0.1}
-                    onChange={(_, value) => setEpsilon(value)}
-                    sx={{
-                      color: getPrivacyLevelColor(epsilon),
-                      '& .MuiSlider-thumb': {
-                        transition: 'all 0.2s'
-                      }
-                    }}
-                  />
-                </Tooltip>
-                <Typography variant="body2" color="text.secondary">
-                  Epsilon value: {epsilon}
-                </Typography>
-              </Grid>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Loan Debt
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+              <input
+                type="number"
+                name="loanDebt"
+                value={formData.loanDebt}
+                onChange={handleInputChange}
+                className="pl-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
 
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>DP Mechanism</InputLabel>
-                  <Select
-                    name="dp_mechanism"
-                    value={formData.dp_mechanism || ''}
-                    onChange={handleChange}
-                    required
-                  >
-                    <MenuItem value="0">Randomized Response</MenuItem>
-                    <MenuItem value="1">Exponential</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Medical Expenses
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+              <input
+                type="number"
+                name="medicalExpenses"
+                value={formData.medicalExpenses}
+                onChange={handleInputChange}
+                className="pl-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        </div>
 
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  fullWidth
-                  disabled={isSubmitting}
-                  sx={{
-                    mt: 2,
-                    py: 1.5,
-                    background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                    '&:hover': {
-                      background: 'linear-gradient(45deg, #1976D2 30%, #00BCD4 90%)',
-                    }
-                  }}
-                >
-                  {isSubmitting ? 'Processing…' : 'Submit'}
-                </Button>
-              </Grid>
-            </Grid>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Income Range
+          </label>
+          <select
+            name="incomeBin"
+            value={formData.incomeBin}
+            onChange={handleInputChange}
+            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+          >
+            {incomeLabels.map((label, index) => (
+              <option key={index} value={index}>{label}</option>
+            ))}
+          </select>
+        </div>
 
-      {/* Results Card */}
-      {privatizedData && (
-        <Card sx={{ maxWidth: 800, width: '100%', mt: 2, boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" gutterBottom color="primary">
-              Privatized Output
-            </Typography>
-            <Box sx={{ 
-              bgcolor: 'grey.50', 
-              p: 2, 
-              borderRadius: 1,
-              fontFamily: 'monospace'
-            }}>
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                {JSON.stringify(privatizedData, null, 2)}
-              </pre>
-            </Box>
-            {typeof privatizedData.incomeBin === 'number' && (
-              <Typography sx={{ mt: 2 }}>
-                <strong>Income:</strong> {incomeLabels[privatizedData.incomeBin]}
-              </Typography>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </Box>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              Privacy Level (ε)
+            </label>
+            <span className="text-sm text-gray-500">{epsilon.toFixed(2)}</span>
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="5"
+            step="0.1"
+            value={epsilon}
+            onChange={(e) => setEpsilon(parseFloat(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>More Privacy</span>
+            <span>More Accuracy</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Privacy Mechanism
+          </label>
+          <select
+            value={mechanism}
+            onChange={(e) => setMechanism(e.target.value)}
+            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+          >
+            <option value="laplace">Laplace Mechanism</option>
+            <option value="randomized">Randomized Response</option>
+            <option value="exponential">Exponential Mechanism</option>
+          </select>
+          <p className="text-sm text-gray-500 mt-1 flex items-center">
+            <FaInfoCircle className="mr-1" />
+            {mechanism === 'laplace' && 'Adds controlled noise to numerical data'}
+            {mechanism === 'randomized' && 'Randomly flips categorical responses'}
+            {mechanism === 'exponential' && 'Selects output based on utility scores'}
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`w-full py-3 px-4 rounded-lg font-medium text-white ${
+            isSubmitting
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-green-600 hover:bg-green-700'
+          } transition-colors duration-200`}
+        >
+          {isSubmitting ? 'Processing...' : 'Submit Data'}
+        </button>
+      </form>
+    </div>
   );
 }
