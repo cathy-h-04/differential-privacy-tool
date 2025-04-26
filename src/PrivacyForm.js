@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './App.css';
 
+// THIS IS THE LATEST COMMIT
+
 export default function PrivacyForm({ onDataSubmit }) {
   const [formData, setFormData] = useState({incomeBin: '', netWorth: '', rentOrMortgage: '', loanDebt: '', medicalExpenses: ''});
   const [epsilon, setEpsilon] = useState(1.0);
