@@ -1,4 +1,4 @@
 flask
-opendp
+opendp==0.12.1a20250227001
 flask_cors
 numpy
