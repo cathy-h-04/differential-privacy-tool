@@ -146,7 +146,14 @@ export default function PrivacyForm() {
       noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
       noisy_netWorth = open_dp_data.netWorthDP;
     }
-    else if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
+    else if (formData.dp_mechanism == 2) {
+      noisy_income = incomeBin;
+      noisy_netWorth = addLaplaceNoise(formData.netWorth, epsilon);
+      noisy_rent = addLaplaceNoise(formData.rentOrMortgage, epsilon);
+      noisy_loanDebt = addLaplaceNoise(formData.loanDebt, epsilon);
+      noisy_medical = addLaplaceNoise(formData.medicalExpenses, epsilon);
+    }
+    else if (formData.dp_mechanism == 3) {
       noisy_income = incomeBin;
       noisy_netWorth = formData.netWorth;
     }
@@ -157,7 +164,7 @@ export default function PrivacyForm() {
     console.log("NOISY NET WORTH: ", noisy_netWorth);
     const payload = {
       user_id: generateRandomUserID(),
-      is_personalized: formData.dp_mechanism == 3, // TRUE only for Shuffle-Private
+      is_personalized: formData.dp_mechanism == 3, // TRUE only for Personalized DP
       epsilon: epsilon,
       dp_mechanism: formData.dp_mechanism,
       income_bin_real: incomeBin,
@@ -172,14 +179,17 @@ export default function PrivacyForm() {
       medical_expenses_noisy: noisy_medical
     };
 
-    await fetch('http://127.0.0.1:5000/submit_data', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
+    // Only send to server for Shuffle and Personalized DP
+    if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
+      console.log("Submitting data...");
+      await fetch('http://127.0.0.1:5000/submit_data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+      });
+    }
     console.log(noisy_income);
 
     const noisyData = {
@@ -259,7 +269,9 @@ export default function PrivacyForm() {
             <option value="0">Randomized Response</option>
             <option value="1">Exponential</option>
             <option value="2">Shuffle</option>
-            <option value="3">Shuffle-Private</option>
+            <option value="3">Personalized DP</option>
+
+
           </select>
         </div>
         {formData.dp_mechanism && (
