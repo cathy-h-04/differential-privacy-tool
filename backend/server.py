@@ -46,6 +46,105 @@ def privatize_personalized(data, threshold=1.0):
             "medical_expenses": None
         }
 
+def insert_shuffle_record(data):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+
+    c.execute('''
+        INSERT INTO user_reports (
+            user_id, is_personalized, epsilon, dp_mechanism,
+            income_bin_real, income_bin_noisy,
+            net_worth_real, net_worth_noisy,
+            rent_or_mortgage_real, rent_or_mortgage_noisy,
+            loan_debt_real, loan_debt_noisy,
+            medical_expenses_real, medical_expenses_noisy
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        data['user_id'],
+        int(data['is_personalized']),
+        data['epsilon'],
+        int(data['dp_mechanism']),
+        data['income_bin_real'],
+        data['income_bin_noisy'],
+        data['net_worth_real'],
+        data['net_worth_noisy'],
+        data['rent_or_mortgage_real'],
+        data['rent_or_mortgage_noisy'],
+        data['loan_debt_real'],
+        data['loan_debt_noisy'],
+        data['medical_expenses_real'],
+        data['medical_expenses_noisy']
+    ))
+
+    conn.commit()
+    conn.close()
+
+def process_shuffle_batch_if_ready():
+    """Check if enough shuffle rows exist. If yes, shuffle and write to clean database."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0 AND dp_mechanism = 2')
+    unprocessed_count = c.fetchone()[0]
+
+    if unprocessed_count < MIN_BATCH_SIZE:
+        conn.close()
+        return  # Not enough shuffle records yet
+
+    # Enough records: fetch and shuffle
+    c.execute('SELECT * FROM user_reports WHERE is_processed = 0 AND dp_mechanism = 2 ORDER BY id ASC LIMIT ?', (MIN_BATCH_SIZE,))
+    rows = list(c.fetchall())
+    random.shuffle(rows)
+
+    # Write shuffled noisy data to shuffled database
+    write_shuffled_rows(rows)
+
+    # Mark original records as processed
+    ids = [str(row['id']) for row in rows]
+    c.execute(f"UPDATE user_reports SET is_processed = 1 WHERE id IN ({','.join(['?'] * len(ids))})", ids)
+    conn.commit()
+    conn.close()
+
+    print(f"Processed and saved a batch of {MIN_BATCH_SIZE} shuffled reports.")
+
+def write_shuffled_rows(rows):
+    """Write a list of shuffled noisy rows into the shuffled database."""
+    SHUFFLE_DB_PATH = os.path.join(BASE_DIR, "shuffled_database.db")
+    conn_shuffle = sqlite3.connect(SHUFFLE_DB_PATH)
+    c_shuffle = conn_shuffle.cursor()
+
+    # Create clean table if needed
+    c_shuffle.execute('''
+        CREATE TABLE IF NOT EXISTS shuffled_user_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            income_bin_noisy INTEGER NOT NULL,
+            net_worth_noisy REAL NOT NULL,
+            rent_or_mortgage_noisy REAL NOT NULL,
+            loan_debt_noisy REAL NOT NULL,
+            medical_expenses_noisy REAL NOT NULL
+        );
+    ''')
+    conn_shuffle.commit()
+
+    for row in rows:
+        c_shuffle.execute('''
+            INSERT INTO shuffled_user_reports (
+                income_bin_noisy, net_worth_noisy,
+                rent_or_mortgage_noisy, loan_debt_noisy, medical_expenses_noisy
+            ) VALUES (?, ?, ?, ?, ?)
+        ''', (
+            row["income_bin_noisy"],
+            row["net_worth_noisy"],
+            row["rent_or_mortgage_noisy"],
+            row["loan_debt_noisy"],
+            row["medical_expenses_noisy"]
+        ))
+
+    conn_shuffle.commit()
+    conn_shuffle.close()
+
+
 # ------------------------ Flask Endpoints ------------------------
 
 @app.route('/laplace', methods=['POST'])
@@ -77,91 +176,32 @@ def laplace():
         print(f"Error in /laplace: {e}")
         return jsonify({"error": str(e)}), 500
 
+
+
 @app.route('/submit_data', methods=['POST'])
 def submit_data():
     try:
         data = request.get_json()
 
+        # personalized dp
         if data['dp_mechanism'] == 3:
-            # Personalized DP: apply immediately
             privatized = privatize_personalized(data)
             return jsonify({
                 "status": "success",
                 "message": "Personalized DP applied immediately.",
-                "privatized_data": privatized
-            }), 200
+        "privatized_data": privatized
+    }), 200
 
-        # Otherwise handle Shuffle (dp_mechanism == 2)
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-
-        # Insert into database
-        c.execute('''
-            INSERT INTO user_reports (
-                user_id, is_personalized, epsilon, dp_mechanism,
-                income_bin_real, income_bin_noisy,
-                net_worth_real, net_worth_noisy,
-                rent_or_mortgage_real, rent_or_mortgage_noisy,
-                loan_debt_real, loan_debt_noisy,
-                medical_expenses_real, medical_expenses_noisy
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            data['user_id'],
-            int(data['is_personalized']),
-            data['epsilon'],
-            int(data['dp_mechanism']),
-            data['income_bin_real'],
-            data['income_bin_noisy'],
-            data['net_worth_real'],
-            data['net_worth_noisy'],
-            data['rent_or_mortgage_real'],
-            data['rent_or_mortgage_noisy'],
-            data['loan_debt_real'],
-            data['loan_debt_noisy'],
-            data['medical_expenses_real'],
-            data['medical_expenses_noisy']
-        ))
-
-        conn.commit()
-
-        # Shuffle when batch ready
-        c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0')
-        unprocessed_count = c.fetchone()[0]
-
-        while unprocessed_count >= MIN_BATCH_SIZE:
-            c.execute('SELECT * FROM user_reports WHERE is_processed = 0 ORDER BY id ASC LIMIT ?', (MIN_BATCH_SIZE,))
-            rows = list(c.fetchall())
-
-            random.shuffle(rows)
-
-            processed = []
-            for row in rows:
-                privatized = {
-                    "income_bin": row["income_bin_noisy"],
-                    "net_worth": row["net_worth_noisy"],
-                    "rent_or_mortgage": row["rent_or_mortgage_noisy"],
-                    "loan_debt": row["loan_debt_noisy"],
-                    "medical_expenses": row["medical_expenses_noisy"]
-                }
-                processed.append((row["id"], privatized))
-
-            ids = [str(row_id) for row_id, _ in processed]
-            c.execute(f"UPDATE user_reports SET is_processed = 1 WHERE id IN ({','.join(['?']*len(ids))})", ids)
-
-            conn.commit()
-            print(f"Shuffled and processed a batch of {MIN_BATCH_SIZE} shuffle reports.")
-
-            c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0')
-            unprocessed_count = c.fetchone()[0]
-
-        conn.close()
+        else:
+            insert_shuffle_record(data)
+            process_shuffle_batch_if_ready()
 
         return jsonify({"status": "success", "message": "Submitted. Shuffling triggered if batch ready."}), 200
 
     except Exception as e:
         print(f"Error in /submit_data: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run()
