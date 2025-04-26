@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import './index.css'; // Tailwind or custom styles
+import './dashboard.css'; // Global dashboard styles
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

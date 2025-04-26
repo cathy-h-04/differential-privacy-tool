@@ -1,8 +1,8 @@
 /* Dashboard-specific styles */
 .dashboard-container {
   display: flex;
-  flex-direction: column;
   min-height: 100vh;
+  width: 100%;
 }
 
 .dashboard-sidebar {
@@ -23,9 +23,10 @@
 
 .dashboard-content {
   flex: 1;
+  margin-left: 250px;
+  transition: all 0.3s ease;
   background-color: #ecfdf5;  /* green-50 */
-  padding: 1.5rem;
-  width: 100%;
+  min-height: 100vh;
 }
 
 .dashboard-content.full-width {
@@ -33,27 +34,15 @@
 }
 
 .dashboard-header {
-  width: 100%;
-  background-color: #10B981;  /* green-500 */
-  border-bottom: 2px solid #047857; /* green-700 */
+  height: 70px;
+  background-color: white;
+  border-bottom: 1px solid #E2E8F0;
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 1rem 0;
+  padding: 0 1.5rem;
   position: sticky;
   top: 0;
-  z-index: 50;
-}
-
-.dashboard-header a {
-  color: #ffffff;
-  margin: 0 1.5rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.dashboard-header a:hover {
-  color: #ecfdf5;
+  z-index: 40;
 }
 
 .dashboard-main {
