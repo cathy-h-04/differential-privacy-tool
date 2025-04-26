@@ -203,7 +203,7 @@ export default function PrivacyForm() {
       )}
       <h1 className="text-2xl font-bold">Privacy-Preserving Data Collector</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
         <label className="block">
           Net Worth (USD)
           <input
