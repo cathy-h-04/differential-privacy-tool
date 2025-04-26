@@ -3,15 +3,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 const numericFields = new Set(['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses', 'incomeBin']);
 
+const mechanismDescriptions = {
+  '0': 'Randomized Response: adds privacy by randomizing responses.',
+  '1': 'Exponential Mechanism: selects outputs with probability based on utility.',
+  '2': 'Shuffle: shuffles data for privacy.',
+  '3': 'Shuffle-Private: shuffle with personalized privacy guarantees.'
+};
+
+const getPrivacyLevel = (eps) => eps <= 1 ? 'High' : eps <= 5 ? 'Medium' : 'Low';
 
 function generateRandomUserID() {
   return uuidv4();
 }
 
-
-// export NODE_OPTIONS=--openssl-legacy-provider
-// npm start
-// Laplace mechanism helper
 const addLaplaceNoise = (value, epsilon) => {
   const scale = 1 / epsilon;
   const u = Math.random() - 0.5;
@@ -19,42 +23,36 @@ const addLaplaceNoise = (value, epsilon) => {
 };
 
 const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
-    // TODO: FIX THIS FXN
-    const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
-    const random = Math.random();
+  const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
+  const random = Math.random();
 
-    if (random < p) {
-      return trueBin;
-    } 
-    const otherBins = [...Array(numBins).keys()].filter(b => b !== trueBin);
-    return otherBins[Math.floor(Math.random() * otherBins.length)];
-    
-  };
+  if (random < p) {
+    return trueBin;
+  }
+  const otherBins = [...Array(numBins).keys()].filter(b => b !== trueBin);
+  return otherBins[Math.floor(Math.random() * otherBins.length)];
+};
 
 const exponentialRandomNoise = (trueBin, epsilon, numBins) => {
   const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
   const actualValue = centerBin[trueBin];
-  const utilityValue = (a,b) => -(Math.abs(a-b));
-  //the formula for the score function in this case is exp(epsilon*utility/2*change in u) where the change in u is the sesntivity of utility function. 
-  const scoreValue = centerBin.map(value => Math.exp((epsilon*utilityValue(actualValue, value))/740000));
-  //from here, we need to find the probability of each bin
+  const utilityValue = (a, b) => -(Math.abs(a - b));
+  const scoreValue = centerBin.map(value => Math.exp((epsilon * utilityValue(actualValue, value)) / 740000));
   let probTotal = 0;
-  for (const score of scoreValue){
+  for (const score of scoreValue) {
     probTotal += score;
   }
-  const prob = scoreValue.map(scoreValue => scoreValue/probTotal)
- 
+  const prob = scoreValue.map(scoreValue => scoreValue / probTotal);
+
   const random = Math.random();
-  let val = 0
-  console.log(prob, random)
-  for (let i=0; i < prob.length; i++){
-    val += prob[i]
-    if (val >= random){
-      return i
+  let val = 0;
+  for (let i = 0; i < prob.length; i++) {
+    val += prob[i];
+    if (val >= random) {
+      return i;
     }
   }
-}
-
+};
 
 export default function PrivacyForm() {
   const [formData, setFormData] = useState({
@@ -62,11 +60,13 @@ export default function PrivacyForm() {
     netWorth: '',
     rentOrMortgage: '',
     loanDebt: '',
-    medicalExpenses: ''
+    medicalExpenses: '',
+    dp_mechanism: ''
   });
 
   const [epsilon, setEpsilon] = useState(1.0);
   const [privatizedData, setPrivatizedData] = useState(null);
+  const [errors, setErrors] = useState([]);
 
   const incomeLabels = [
     "Less than $20k",
@@ -83,17 +83,24 @@ export default function PrivacyForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     const numericFields = new Set(['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses']);
-    
+
     setFormData({
       ...formData,
       [name]: numericFields.has(name) ? (value === '' ? '' : parseFloat(value)) : value
     });
   };
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
+    const errs = [];
+    if (!formData.netWorth || isNaN(formData.netWorth)) errs.push('Net Worth is required and must be a number.');
+    if (!formData.incomeBin) errs.push('Income range is required.');
+    if (isNaN(epsilon) || epsilon <= 0) errs.push('Epsilon must be a positive number.');
+    if (!formData.dp_mechanism) errs.push('Please select a DP mechanism.');
+    if (errs.length) { setErrors(errs); return; }
+    setErrors([]);
+
     if (
       formData.netWorth === '' ||
       isNaN(formData.netWorth) ||
@@ -105,7 +112,7 @@ export default function PrivacyForm() {
       alert('Please fill out all fields and ensure epsilon and net worth are valid numbers.');
       return;
     }
-  
+
     const incomeBin = parseFloat(formData.incomeBin);
     const numBins = 5;
 
@@ -113,7 +120,7 @@ export default function PrivacyForm() {
       netWorth: formData.netWorth,
       epsilon: epsilon
     }
-    const flask_response = await fetch('http://127.0.0.1:5000/laplace',{
+    const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -143,7 +150,7 @@ export default function PrivacyForm() {
       noisy_income = incomeBin;
       noisy_netWorth = formData.netWorth;
     }
-  
+
     noisy_rent = formData.rentOrMortgage;
     noisy_loanDebt = formData.loanDebt;
     noisy_medical = formData.medicalExpenses;
@@ -164,8 +171,7 @@ export default function PrivacyForm() {
       medical_expenses_real: formData.medicalExpenses,
       medical_expenses_noisy: noisy_medical
     };
-  
-    // Send to Flask server
+
     await fetch('http://127.0.0.1:5000/submit_data', {
       method: 'POST',
       headers: {
@@ -173,9 +179,9 @@ export default function PrivacyForm() {
       },
       body: JSON.stringify(payload),
     });
-  
+
     console.log(noisy_income);
-  
+
     const noisyData = {
       incomeBin: Math.floor(noisy_income),
       netWorth: noisy_netWorth,
@@ -186,13 +192,19 @@ export default function PrivacyForm() {
     setPrivatizedData(noisyData);
   };
 
-
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-md rounded-xl space-y-6">
+      {errors.length > 0 && (
+        <div className="bg-red-100 border border-red-300 p-4 rounded">
+          <ul className="list-disc list-inside text-red-700">
+            {errors.map((err, i) => <li key={i}>{err}</li>)}
+          </ul>
+        </div>
+      )}
       <h1 className="text-2xl font-bold">Privacy-Preserving Data Collector</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-      <label className="block">
+        <label className="block">
           Net Worth (USD)
           <input
             type="number"
@@ -240,38 +252,26 @@ export default function PrivacyForm() {
           />
         </label>
 
-        {/* <label className="block">
-          Income
-          <input
-            type="number"
-            name="loanDebt"
-            value={formData.income}
+        <label className="block">
+          Income Range
+          <select
+            name="incomeBin"
+            value={formData.incomeBin}
             onChange={handleChange}
             className="w-full p-2 mt-1 border rounded"
             required
-          />
-        </label> */}
-
-        <label className="block">
-            Income Range
-            <select
-                name="incomeBin"
-                value={formData.incomeBin}
-                onChange={handleChange}
-                className="w-full p-2 mt-1 border rounded"
-                required
-            >
-                <option value="">Select</option>
-                <option value="0">Less than $20k</option>
-                <option value="1">$20k–$40k</option>
-                <option value="2">$40k–$60k</option>
-                <option value="3">$60k–$100k</option>
-                <option value="4">100k-200k</option>
-                <option value="5">200k-300k</option>
-                <option value="6">300k-400k</option>
-                <option value="7">400k-500k</option>
-                <option value="8">&gt; 500k</option>
-            </select>
+          >
+            <option value="">Select</option>
+            <option value="0">Less than $20k</option>
+            <option value="1">$20k–$40k</option>
+            <option value="2">$40k–$60k</option>
+            <option value="3">$60k–$100k</option>
+            <option value="4">100k-200k</option>
+            <option value="5">200k-300k</option>
+            <option value="6">300k-400k</option>
+            <option value="7">400k-500k</option>
+            <option value="8">&gt; 500k</option>
+          </select>
         </label>
 
         <label className="block">
@@ -285,7 +285,7 @@ export default function PrivacyForm() {
             onChange={(e) => setEpsilon(parseFloat(e.target.value))}
             className="w-full mt-1"
           />
-          <span className="text-sm text-gray-600">Epsilon: {epsilon}</span>
+          <span className="text-sm text-gray-600">ε: {epsilon} ({getPrivacyLevel(epsilon)} privacy)</span>
         </label>
 
         <label className="block">
@@ -300,10 +300,13 @@ export default function PrivacyForm() {
             <option value="">Select</option>
             <option value="0">Randomized Response</option>
             <option value="1">Exponential</option>
-            <option value="2">Shuffle</option>           
-            <option value="3">Shuffle-Private</option>    
+            <option value="2">Shuffle</option>
+            <option value="3">Shuffle-Private</option>
           </select>
         </label>
+        {formData.dp_mechanism && (
+          <p className="text-sm text-gray-600 italic">{mechanismDescriptions[formData.dp_mechanism]}</p>
+        )}
 
         <button
           type="submit"
@@ -318,15 +321,14 @@ export default function PrivacyForm() {
           <h2 className="text-lg font-semibold mb-2">Privatized Output</h2>
           <pre className="text-sm mb-2">
             {JSON.stringify(privatizedData, null, 2)}
-            </pre>
-            {typeof privatizedData.incomeBin === 'number' && (
+          </pre>
+          {typeof privatizedData.incomeBin === 'number' && (
             <p className="text-sm text-gray-700">
-                Privatized Income Bin: {incomeLabels[privatizedData.incomeBin]}
+              Privatized Income Bin: {incomeLabels[privatizedData.incomeBin]}
             </p>
-            )}
+          )}
         </div>
       )}
     </div>
   );
 }
-
