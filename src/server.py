@@ -36,6 +36,8 @@ def laplace():
 
         try:
             net_worth = float(net_worth)
+
+            print("NET WORTH: ", net_worth)
             epsilon = float(epsilon)
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid types for netWorth or epsilon"}), 400
@@ -44,8 +46,11 @@ def laplace():
             return jsonify({"error": "Invalid epsilon or net worth"}), 400
 
         # Now safe
+        print("EPSILON: ", epsilon)
         laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=1/epsilon)
+        print("LAPLACE MECH: ", laplace_mech)
         dp_val = laplace_mech(net_worth)
+        print("DP VAL: ", dp_val)
 
         return jsonify({'netWorthDP': dp_val})
 
