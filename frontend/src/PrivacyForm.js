@@ -203,79 +203,39 @@ export default function PrivacyForm() {
       )}
       <h1 className="text-2xl font-bold">Privacy-Preserving Data Collector</h1>
 
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-6">
-        <label className="block">
-          Net Worth (USD)
-          <input
-            type="number"
-            name="netWorth"
-            value={formData.netWorth}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
-
-        <label className="block">
-          Monthly Rent or Mortgage (USD)
-          <input
-            type="number"
-            name="rentOrMortgage"
-            value={formData.rentOrMortgage}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
-
-        <label className="block">
-          Outstanding Loan Debt (USD)
-          <input
-            type="number"
-            name="loanDebt"
-            value={formData.loanDebt}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
-
-        <label className="block">
-          Annual Medical Expenses (USD)
-          <input
-            type="number"
-            name="medicalExpenses"
-            value={formData.medicalExpenses}
-            onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
-          />
-        </label>
-
-        <label className="block">
-          Income Range
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">Net Worth (USD)</span></label>
+          <input type="number" name="netWorth" value={formData.netWorth} onChange={handleChange} className="input input-bordered w-full" />
+        </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">Monthly Rent or Mortgage (USD)</span></label>
+          <input type="number" name="rentOrMortgage" value={formData.rentOrMortgage} onChange={handleChange} className="input input-bordered w-full" />
+        </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">Outstanding Loan Debt (USD)</span></label>
+          <input type="number" name="loanDebt" value={formData.loanDebt} onChange={handleChange} className="input input-bordered w-full" />
+        </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">Annual Medical Expenses (USD)</span></label>
+          <input type="number" name="medicalExpenses" value={formData.medicalExpenses} onChange={handleChange} className="input input-bordered w-full" />
+        </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">Income Range</span></label>
           <select
             name="incomeBin"
             value={formData.incomeBin}
             onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
+            className="select select-bordered w-full"
           >
-            <option value="">Select</option>
-            <option value="0">Less than $20k</option>
-            <option value="1">$20k–$40k</option>
-            <option value="2">$40k–$60k</option>
-            <option value="3">$60k–$100k</option>
-            <option value="4">100k-200k</option>
-            <option value="5">200k-300k</option>
-            <option value="6">300k-400k</option>
-            <option value="7">400k-500k</option>
-            <option value="8">&gt; 500k</option>
+            <option value="">Select a range</option>
+            {incomeLabels.map((label, idx) => (
+              <option key={idx} value={idx}>{label}</option>
+            ))}
           </select>
-        </label>
-
-        <label className="block">
-          Privacy Level (ε)
+        </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">Privacy Level (ε)</span></label>
           <input
             type="range"
             min="0.1"
@@ -283,19 +243,17 @@ export default function PrivacyForm() {
             step="0.1"
             value={epsilon}
             onChange={(e) => setEpsilon(parseFloat(e.target.value))}
-            className="w-full mt-1"
+            className="range range-primary w-full"
           />
           <span className="text-sm text-gray-600">ε: {epsilon} ({getPrivacyLevel(epsilon)} privacy)</span>
-        </label>
-
-        <label className="block">
-          DP Mechanism
+        </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">DP Mechanism</span></label>
           <select
             name="dp_mechanism"
             value={formData.dp_mechanism}
             onChange={handleChange}
-            className="w-full p-2 mt-1 border rounded"
-            required
+            className="select select-bordered w-full"
           >
             <option value="">Select</option>
             <option value="0">Randomized Response</option>
@@ -303,14 +261,13 @@ export default function PrivacyForm() {
             <option value="2">Shuffle</option>
             <option value="3">Shuffle-Private</option>
           </select>
-        </label>
+        </div>
         {formData.dp_mechanism && (
           <p className="text-sm text-gray-600 italic">{mechanismDescriptions[formData.dp_mechanism]}</p>
         )}
-
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="btn btn-primary"
         >
           Submit
         </button>

@@ -17,11 +17,22 @@ module.exports = {
           800: '#166534',
           900: '#14532d',
         }
-      }
+      },
+      fontFamily: {
+        sans: ['Poppins', 'sans-serif'],
+      },
     },
   },
   variants: {
     extend: {},
   },
-  plugins: [],
-} 
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+    require('daisyui'),
+  ],
+  daisyui: {
+    themes: ['forest'],
+    styled: true,
+  },
+}
