@@ -1,0 +1,4 @@
+flask
+opendp
+flask_cors
+numpy

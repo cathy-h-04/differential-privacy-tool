@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+
+const numericFields = new Set(['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses', 'incomeBin']);
+
+
+function generateRandomUserID() {
+  return uuidv4();
+}
+
 
 // export NODE_OPTIONS=--openssl-legacy-provider
 // npm start
@@ -48,7 +57,14 @@ const exponentialRandomNoise = (trueBin, epsilon, numBins) => {
 
 
 export default function PrivacyForm() {
-  const [formData, setFormData] = useState({incomeBin: '', netWorth: '', rentOrMortgage: '', loanDebt: '', medicalExpenses: ''});
+  const [formData, setFormData] = useState({
+    incomeBin: '',
+    netWorth: '',
+    rentOrMortgage: '',
+    loanDebt: '',
+    medicalExpenses: ''
+  });
+
   const [epsilon, setEpsilon] = useState(1.0);
   const [privatizedData, setPrivatizedData] = useState(null);
 
@@ -66,50 +82,114 @@ export default function PrivacyForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    const numericFields = new Set(['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses']);
+    
     setFormData({
       ...formData,
-      [name]: name === 'income' ? value : parseFloat(value),
+      [name]: numericFields.has(name) ? (value === '' ? '' : parseFloat(value)) : value
     });
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const incomeBin = parseFloat(formData.incomeBin);
-    // CHANGE NUMBINS
-    const numBins = 5;
-
-    const testing_open_dp = {
-      netWorth: formData.netWorth,
-      epsilon: epsilon
+  
+    if (
+      formData.netWorth === '' ||
+      isNaN(formData.netWorth) ||
+      isNaN(epsilon) ||
+      epsilon <= 0 ||
+      formData.incomeBin === '' ||
+      isNaN(parseFloat(formData.incomeBin))
+    ) {
+      alert('Please fill out all fields and ensure epsilon and net worth are valid numbers.');
+      return;
     }
-    const flask_response = await fetch('http://127.0.0.1:5000/laplace',{
+  
+    const incomeBin = parseFloat(formData.incomeBin);
+    const numBins = 5;
+  
+    let open_dp_data = null;
+  
+    // Only call /laplace if using RR or Exponential
+    if (formData.dp_mechanism == 0 || formData.dp_mechanism == 1) {
+      const testing_open_dp = {
+        netWorth: parseFloat(formData.netWorth),
+        epsilon: parseFloat(epsilon)
+      };
+  
+      const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testing_open_dp)
+      });
+  
+      open_dp_data = await flask_response.json();
+    }
+  
+    let noisy_income = null;
+    let noisy_netWorth = null;
+    let noisy_rent = null;
+    let noisy_loanDebt = null;
+    let noisy_medical = null;
+  
+    if (formData.dp_mechanism == 0) {
+      noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
+      noisy_netWorth = open_dp_data.netWorthDP;
+    }
+    else if (formData.dp_mechanism == 1) {
+      noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
+      noisy_netWorth = open_dp_data.netWorthDP;
+    }
+    else if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
+      noisy_income = incomeBin;
+      noisy_netWorth = formData.netWorth;
+    }
+  
+    noisy_rent = formData.rentOrMortgage;
+    noisy_loanDebt = formData.loanDebt;
+    noisy_medical = formData.medicalExpenses;
+  
+    const payload = {
+      user_id: generateRandomUserID(),
+      is_personalized: formData.dp_mechanism == 3, // TRUE only for Shuffle-Private
+      epsilon: epsilon,
+      dp_mechanism: formData.dp_mechanism,
+      income_bin_real: incomeBin,
+      income_bin_noisy: noisy_income,
+      net_worth_real: formData.netWorth,
+      net_worth_noisy: noisy_netWorth,
+      rent_or_mortgage_real: formData.rentOrMortgage,
+      rent_or_mortgage_noisy: noisy_rent,
+      loan_debt_real: formData.loanDebt,
+      loan_debt_noisy: noisy_loanDebt,
+      medical_expenses_real: formData.medicalExpenses,
+      medical_expenses_noisy: noisy_medical
+    };
+  
+    // Send to Flask server
+    await fetch('http://127.0.0.1:5000/submit_data', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(testing_open_dp)
+      body: JSON.stringify(payload),
     });
-    const open_dp_data = await flask_response.json();
-
-    let noisy_income;
-    if (formData.dp_mechanism == 0){
-      noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
-    }
-    else if (formData.dp_mechanism == 1){
-     noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
-    }
-    console.log(noisy_income)
+  
+    console.log(noisy_income);
+  
     const noisyData = {
       incomeBin: Math.floor(noisy_income),
-      netWorth: open_dp_data.netWorthDP,
-      //netWorth: addLaplaceNoise(formData.netWorth, epsilon),
-      rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
-      loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
-      medicalExpenses: addLaplaceNoise(formData.medicalExpenses, epsilon),
+      netWorth: noisy_netWorth,
+      rentOrMortgage: noisy_rent,
+      loanDebt: noisy_loanDebt,
+      medicalExpenses: noisy_medical,
     };
     setPrivatizedData(noisyData);
   };
+
 
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-md rounded-xl space-y-6">
@@ -224,6 +304,8 @@ export default function PrivacyForm() {
             <option value="">Select</option>
             <option value="0">Randomized Response</option>
             <option value="1">Exponential</option>
+            <option value="2">Shuffle</option>           
+            <option value="3">Shuffle-Private</option>    
           </select>
         </label>
 
