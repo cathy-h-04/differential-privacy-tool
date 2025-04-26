@@ -12,3 +12,9 @@ source venv/bin/activate
 
 3. cd to src
 pip install -r requirements.txt
+
+4. cd back to root directory and run the frontend
+npm start
+
+5. cd into src to start the server
+python3 server.py
