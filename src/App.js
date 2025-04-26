@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import PrivacyForm from './PrivacyForm';
 import DataVisualization from './DataVisualization';
+import DashboardLayout from './layouts/DashboardLayout';
+import InfoCard from './components/InfoCard';
 import './App.css';
 
 function App() {
@@ -12,25 +15,64 @@ function App() {
     setEpsilon(eps);
   };
 
+  const privacyInfo = [
+    {
+      title: 'What is Differential Privacy?',
+      description: 'Differential privacy is a system for publicly sharing information about a dataset by describing the patterns of groups within the dataset while withholding information about individuals in the dataset.'
+    },
+    {
+      title: 'Understanding Epsilon (ε)',
+      description: 'Epsilon (ε) is the privacy budget. Lower values provide more privacy but less accuracy. Higher values provide more accuracy but less privacy.'
+    },
+    {
+      title: 'Privacy Mechanisms',
+      description: 'We use multiple privacy mechanisms including Laplace noise, randomized response, and exponential mechanisms to protect your data.'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Privacy-Preserving Data Visualization</h1>
-        </div>
-      </header>
-      
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <PrivacyForm onDataSubmit={handleDataSubmit} />
-          </div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <DataVisualization privatizedData={privatizedData} epsilon={epsilon} />
-          </div>
-        </div>
-      </main>
-    </div>
+    <Router>
+      <DashboardLayout>
+        <Routes>
+          <Route path="/" element={
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <PrivacyForm onDataSubmit={handleDataSubmit} />
+                </div>
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <DataVisualization privatizedData={privatizedData} epsilon={epsilon} />
+                </div>
+              </div>
+            </div>
+          } />
+          <Route path="/privacy" element={
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Privacy Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {privacyInfo.map((info, index) => (
+                  <InfoCard
+                    key={index}
+                    title={info.title}
+                    description={info.description}
+                  />
+                ))}
+              </div>
+            </div>
+          } />
+          <Route path="/about" element={
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Project</h2>
+              <p className="text-gray-600">
+                This project demonstrates the application of differential privacy in financial data visualization.
+                It allows users to input their financial information while maintaining privacy through various
+                differential privacy mechanisms.
+              </p>
+            </div>
+          } />
+        </Routes>
+      </DashboardLayout>
+    </Router>
   );
 }
 

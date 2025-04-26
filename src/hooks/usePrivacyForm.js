@@ -1,26 +1,26 @@
 import { useState } from 'react';
-import { addLaplaceNoise, randomizedResponseBinned, exponentialRandomNoise } from '../utils/privacy';
 
 export function usePrivacyForm() {
   const [formData, setFormData] = useState({
-    incomeBin: '',
     netWorth: '',
     rentOrMortgage: '',
     loanDebt: '',
     medicalExpenses: '',
-    dp_mechanism: ''
+    incomeBin: 0
   });
-  const [epsilon, setEpsilon] = useState(1.0);
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'incomeBin' ? value : parseFloat(value),
-    });
+  const [epsilon, setEpsilon] = useState(1.0);
+  const [mechanism, setMechanism] = useState('laplace');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const getPrivacyLevel = (eps) => {
+    if (eps <= 0.5) return 'High';
+    if (eps <= 1.5) return 'Medium';
+    return 'Low';
   };
+
+  const privacyLevel = getPrivacyLevel(epsilon);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,43 +28,28 @@ export function usePrivacyForm() {
     setError('');
 
     try {
-      const incomeBin = parseFloat(formData.incomeBin);
-      const numBins = 5;
-
-      const testing_open_dp = {
-        netWorth: formData.netWorth,
-        epsilon: epsilon
-      };
-
-      const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
+      // Here you would normally make an API call to your Flask backend
+      const response = await fetch('/api/privatize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(testing_open_dp)
+        body: JSON.stringify({
+          ...formData,
+          epsilon,
+          mechanism
+        }),
       });
-      const open_dp_data = await flask_response.json();
 
-      let noisy_income;
-      if (formData.dp_mechanism == 0) {
-        noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
-      } else if (formData.dp_mechanism == 1) {
-        noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
+      if (!response.ok) {
+        throw new Error('Failed to process data');
       }
 
-      const noisyData = {
-        incomeBin: Math.floor(noisy_income),
-        netWorth: open_dp_data.netWorthDP,
-        rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
-        loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
-        medicalExpenses: addLaplaceNoise(formData.medicalExpenses, epsilon),
-      };
-
-      return noisyData;
+      const result = await response.json();
+      // Handle the result as needed
+      console.log('Privatized data:', result);
     } catch (err) {
-      setError("An error occurred while processing your data. Please try again.");
-      console.error(err);
-      throw err;
+      setError('An error occurred while processing your data. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -72,11 +57,14 @@ export function usePrivacyForm() {
 
   return {
     formData,
-    epsilon,
+    setFormData,
+    handleSubmit,
     error,
     isSubmitting,
-    handleChange,
-    handleSubmit,
-    setEpsilon
+    privacyLevel,
+    epsilon,
+    setEpsilon,
+    mechanism,
+    setMechanism
   };
 } 
