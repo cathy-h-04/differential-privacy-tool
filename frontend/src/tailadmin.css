@@ -1,0 +1,221 @@
+/* TailAdmin CSS - Regular CSS version */
+
+/* Base styles */
+body {
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: normal;
+  font-size: 1rem;
+  color: #637381;
+  background-color: #F9FAFB;
+  position: relative;
+  z-index: 1;
+}
+
+/* Component styles */
+.dropdown {
+  position: absolute;
+  right: 0;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.125rem;
+  border: 1px solid #E2E8F0;
+  background-color: white;
+  box-shadow: 0px 8px 13px -3px rgba(0, 0, 0, 0.07);
+}
+
+.dark .dropdown {
+  border-color: #2E3A47;
+  background-color: #24303F;
+}
+
+.notification-item {
+  display: flex;
+  padding: 0.375rem 1.125rem;
+}
+
+.notification-item:hover {
+  background-color: #F3F4F6;
+}
+
+.dark .notification-item:hover {
+  background-color: #313D4A;
+}
+
+.notification-list {
+  display: flex;
+  height: auto;
+  width: 100%;
+  flex-direction: column;
+  border-radius: 0.125rem;
+  border: 1px solid #E2E8F0;
+  background-color: white;
+  box-shadow: 0px 8px 13px -3px rgba(0, 0, 0, 0.07);
+}
+
+.dark .notification-list {
+  border-color: #2E3A47;
+  background-color: #24303F;
+}
+
+.sidebar-menu-item {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.125rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: #DEE4EE;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-menu-item:hover {
+  background-color: #333A48;
+}
+
+.dark .sidebar-menu-item:hover {
+  background-color: #313D4A;
+}
+
+.sidebar-menu-item.active {
+  background-color: #333A48;
+}
+
+.dark .sidebar-menu-item.active {
+  background-color: #313D4A;
+}
+
+.sidebar-submenu {
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.sidebar-submenu-item {
+  position: relative;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.375rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-weight: 500;
+  color: #8A99AF;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-submenu-item:hover {
+  color: white;
+}
+
+.sidebar-submenu-item.active {
+  color: white;
+}
+
+.sidebar-dropdown-button {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  border-radius: 0.125rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: #DEE4EE;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-dropdown-button:hover {
+  background-color: #333A48;
+}
+
+.dark .sidebar-dropdown-button:hover {
+  background-color: #313D4A;
+}
+
+.sidebar-dropdown-button.active {
+  background-color: #333A48;
+}
+
+.dark .sidebar-dropdown-button.active {
+  background-color: #313D4A;
+}
+
+/* Color utility classes */
+.bg-boxdark {
+  background-color: #24303F;
+}
+
+.bg-boxdark-2 {
+  background-color: #1A222C;
+}
+
+.bg-meta-4 {
+  background-color: #313D4A;
+}
+
+.text-bodydark {
+  color: #AEB7C0;
+}
+
+.text-bodydark1 {
+  color: #DEE4EE;
+}
+
+.text-bodydark2 {
+  color: #8A99AF;
+}
+
+.border-strokedark {
+  border-color: #2E3A47;
+}
+
+.bg-graydark {
+  background-color: #333A48;
+}
+
+/* Animation for preloader */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Additional utility classes */
+.font-satoshi {
+  font-family: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.text-body {
+  color: #637381;
+}
+
+.bg-whiten {
+  background-color: #F9FAFB;
+}
+
+.z-1 {
+  z-index: 1;
+}
+
+.border-stroke {
+  border-color: #E2E8F0;
+}
+
+.shadow-default {
+  box-shadow: 0px 8px 13px -3px rgba(0, 0, 0, 0.07);
+}
