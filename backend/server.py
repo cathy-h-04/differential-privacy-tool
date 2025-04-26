@@ -7,7 +7,7 @@ import random
 import numpy as np
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "shuffle_database.db")
+DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 
 dp.enable_features("honest-but-curious", "contrib")

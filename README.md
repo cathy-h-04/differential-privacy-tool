@@ -15,7 +15,8 @@ source venv/bin/activate
   ```bash
   cd backend
   pip install -r requirements.txt
-  python server.py
+  python3 database_setup.py
+  python3 server.py
   ```
 
 ### Frontend
