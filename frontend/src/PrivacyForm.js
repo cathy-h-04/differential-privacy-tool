@@ -179,14 +179,17 @@ export default function PrivacyForm() {
       medical_expenses_noisy: noisy_medical
     };
 
-    await fetch('http://127.0.0.1:5000/submit_data', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
+    // Only send to server for Shuffle and Personalized DP
+    if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
+      console.log("Submitting data...");
+      await fetch('http://127.0.0.1:5000/submit_data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+      });
+    }
     console.log(noisy_income);
 
     const noisyData = {

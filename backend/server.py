@@ -15,13 +15,13 @@ CORS(app, origins=["http://localhost:3000"])
 
 MIN_BATCH_SIZE = 10  # Minimum reports needed to process a batch
 
+# ------------------------ Helper Functions ------------------------
+
 def laplace_noise(scale):
     return np.random.laplace(loc=0.0, scale=scale)
 
-# ------------------------ Privatization Helper Functions ------------------------
-
-def privatize_personalized(row, threshold=1.0):
-    user_epsilon = row['epsilon']
+def privatize_personalized(data, threshold=1.0):
+    user_epsilon = data['epsilon']
 
     if user_epsilon >= threshold:
         sampling_prob = 1.0
@@ -31,11 +31,11 @@ def privatize_personalized(row, threshold=1.0):
     if random.random() <= sampling_prob:
         scale = 1.0 / threshold
         return {
-            "income_bin": row["income_bin_real"],
-            "net_worth": row["net_worth_real"] + laplace_noise(scale),
-            "rent_or_mortgage": row["rent_or_mortgage_real"] + laplace_noise(scale),
-            "loan_debt": row["loan_debt_real"] + laplace_noise(scale),
-            "medical_expenses": row["medical_expenses_real"] + laplace_noise(scale)
+            "income_bin": data["income_bin_real"],
+            "net_worth": data["net_worth_real"] + laplace_noise(scale),
+            "rent_or_mortgage": data["rent_or_mortgage_real"] + laplace_noise(scale),
+            "loan_debt": data["loan_debt_real"] + laplace_noise(scale),
+            "medical_expenses": data["medical_expenses_real"] + laplace_noise(scale)
         }
     else:
         return {
@@ -62,13 +62,10 @@ def laplace():
         if net_worth is None or epsilon is None:
             return jsonify({"error": "Missing netWorth or epsilon"}), 400
 
-        try:
-            net_worth = float(net_worth)
-            epsilon = float(epsilon)
-        except (ValueError, TypeError):
-            return jsonify({"error": "Invalid types for netWorth or epsilon"}), 400
+        net_worth = float(net_worth)
+        epsilon = float(epsilon)
 
-        if epsilon <= 0 or not (net_worth == net_worth):  # net_worth != net_worth catches NaN
+        if epsilon <= 0 or not (net_worth == net_worth):
             return jsonify({"error": "Invalid epsilon or net worth"}), 400
 
         laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=1/epsilon)
@@ -85,11 +82,21 @@ def submit_data():
     try:
         data = request.get_json()
 
+        if data['dp_mechanism'] == 3:
+            # Personalized DP: apply immediately
+            privatized = privatize_personalized(data)
+            return jsonify({
+                "status": "success",
+                "message": "Personalized DP applied immediately.",
+                "privatized_data": privatized
+            }), 200
+
+        # Otherwise handle Shuffle (dp_mechanism == 2)
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
-        # Insert the incoming data
+        # Insert into database
         c.execute('''
             INSERT INTO user_reports (
                 user_id, is_personalized, epsilon, dp_mechanism,
@@ -118,47 +125,43 @@ def submit_data():
 
         conn.commit()
 
-        # After inserting, check how many unprocessed submissions exist
+        # Shuffle when batch ready
         c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0')
         unprocessed_count = c.fetchone()[0]
-        print(f"Currently {unprocessed_count} unprocessed reports.")
 
-        # While enough unprocessed rows exist, shuffle and privatize in batches
         while unprocessed_count >= MIN_BATCH_SIZE:
             c.execute('SELECT * FROM user_reports WHERE is_processed = 0 ORDER BY id ASC LIMIT ?', (MIN_BATCH_SIZE,))
-            rows = c.fetchall()
-            rows = list(rows)
+            rows = list(c.fetchall())
 
             random.shuffle(rows)
 
             processed = []
             for row in rows:
-                if row['dp_mechanism'] == 3:  # Personalized DP
-                    privatized = privatize_personalized(row)
-                else:  # Shuffle
-                    privatized = row
-
+                privatized = {
+                    "income_bin": row["income_bin_noisy"],
+                    "net_worth": row["net_worth_noisy"],
+                    "rent_or_mortgage": row["rent_or_mortgage_noisy"],
+                    "loan_debt": row["loan_debt_noisy"],
+                    "medical_expenses": row["medical_expenses_noisy"]
+                }
                 processed.append((row["id"], privatized))
 
-            # Mark rows as processed
             ids = [str(row_id) for row_id, _ in processed]
             c.execute(f"UPDATE user_reports SET is_processed = 1 WHERE id IN ({','.join(['?']*len(ids))})", ids)
 
             conn.commit()
-            print(f"Shuffled and processed a batch of {MIN_BATCH_SIZE} reports.")
+            print(f"Shuffled and processed a batch of {MIN_BATCH_SIZE} shuffle reports.")
 
-            # Re-check remaining unprocessed reports
             c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0')
             unprocessed_count = c.fetchone()[0]
 
         conn.close()
 
-        return jsonify({"status": "success", "message": "Submitted. Shuffling triggered automatically if batch ready."}), 200
+        return jsonify({"status": "success", "message": "Submitted. Shuffling triggered if batch ready."}), 200
 
     except Exception as e:
         print(f"Error in /submit_data: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run()
