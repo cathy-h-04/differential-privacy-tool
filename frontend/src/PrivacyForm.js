@@ -33,7 +33,7 @@ const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
   return otherBins[Math.floor(Math.random() * otherBins.length)];
 };
 
-const exponentialRandomNoise = (trueBin, epsilon, numBins) => {
+const exponentialRandomNoise = (trueBin, epsilon) => {
   const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
   const actualValue = centerBin[trueBin];
   const utilityValue = (a, b) => -(Math.abs(a - b));

@@ -167,8 +167,9 @@ def laplace():
         if epsilon <= 0 or not (net_worth == net_worth):
             return jsonify({"error": "Invalid epsilon or net worth"}), 400
 
-        laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=1/epsilon)
-        dp_val = laplace_mech(net_worth)
+        laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=750000/epsilon)
+        clamped_net_worth = np.clip(net_worth, 0, 750000)
+        dp_val = laplace_mech(clamped_net_worth)
 
         return jsonify({'netWorthDP': dp_val})
 
