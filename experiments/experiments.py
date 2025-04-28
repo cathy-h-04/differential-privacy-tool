@@ -52,6 +52,8 @@ def experiments(trials, epsilon):
     rr_results = []
     exp_results = []
     true_results = []
+    shuffle_results = []
+    curr_shuffle = []
 
     for _ in range(trials):
         net_worth = random.uniform(0, 1000000)  
@@ -72,22 +74,34 @@ def experiments(trials, epsilon):
         exp_results.append([exponential(bin_net_worth, epsilon), exponential(bin_rent_or_mortgage, epsilon), 
                             exponential(bin_loan_debt, epsilon), exponential(bin_medical_expenses, epsilon),
                             exponential(income_bin_index, epsilon)])
-        rr_results.append([randomized_response(bin_net_worth, epsilon, len(income_bins)),
+        rr = [randomized_response(bin_net_worth, epsilon, len(income_bins)),
                            randomized_response(bin_rent_or_mortgage, epsilon, len(income_bins)),
                            randomized_response(bin_loan_debt, epsilon, len(income_bins)),
                            randomized_response(bin_medical_expenses, epsilon, len(income_bins)),
-                           randomized_response(income_bin_index, epsilon, len(income_bins))])
+                           randomized_response(income_bin_index, epsilon, len(income_bins))]
+        rr_results.append(rr)
+        curr_shuffle.append(rr)
+        if len(curr_shuffle) == 10:
+            random.shuffle(curr_shuffle)
+            shuffle_results.extend(curr_shuffle)
+            curr_shuffle = []
+
+    if curr_shuffle:
+        random.shuffle(curr_shuffle)
+        shuffle_results.extend(curr_shuffle)
 
     cols = ['Net Worth', 'Rent or Mortgage', 'Loan Debt', 'Medical Expenses', 'Income Bin']
     true_df = pd.DataFrame(true_results, columns= cols)
     laplace_df = pd.DataFrame(laplace_results, columns = cols)
     exp_df = pd.DataFrame(exp_results, columns = cols)
     rr_df = pd.DataFrame(rr_results, columns = cols)
+    shuffle_df = pd.DataFrame(shuffle_results, columns = cols)
 
     true_df.to_csv('true.csv', index=False)
     laplace_df.to_csv('laplace.csv', index=False)
     exp_df.to_csv('exponential.csv', index=False)
     rr_df.to_csv('randomized_response.csv', index=False)
+    shuffle_df.to_csv('shuffle_with_rr.csv', index=False)
 
 experiments(1000, 2)
 
