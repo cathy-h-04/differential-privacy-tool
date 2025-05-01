@@ -147,15 +147,14 @@ export default function PrivacyForm() {
       noisy_netWorth = open_dp_data.netWorthDP;
     }
     else if (formData.dp_mechanism == 2) {
-      noisy_income = incomeBin;
-      noisy_netWorth = addLaplaceNoise(formData.netWorth, epsilon);
-      noisy_rent = addLaplaceNoise(formData.rentOrMortgage, epsilon);
-      noisy_loanDebt = addLaplaceNoise(formData.loanDebt, epsilon);
-      noisy_medical = addLaplaceNoise(formData.medicalExpenses, epsilon);
+      setPrivatizedData(null); 
+      alert("Shuffle DP injects local noise and then anonymizes when k responses are received on the server side.");
+      return; 
     }
     else if (formData.dp_mechanism == 3) {
-      noisy_income = incomeBin;
-      noisy_netWorth = formData.netWorth;
+      setPrivatizedData(null); 
+      alert("Personalized DP allows users to have fine-grained access over their own privacy parameters. See our DP Query Portal for more information.");
+      return; 
     }
 
     noisy_rent = formData.rentOrMortgage;
@@ -180,16 +179,16 @@ export default function PrivacyForm() {
     };
 
     // Only send to server for Shuffle and Personalized DP
-    if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
-      console.log("Submitting data...");
-      await fetch('http://127.0.0.1:5000/submit_data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-      });
-    }
+    // if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
+    //   console.log("Submitting data...");
+    //   await fetch('http://127.0.0.1:5000/submit_data', {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //       },
+    //       body: JSON.stringify(payload),
+    //   });
+    // }
     console.log(noisy_income);
 
     const noisyData = {
@@ -281,7 +280,7 @@ export default function PrivacyForm() {
           type="submit"
           className="btn btn-primary"
         >
-          Submit
+          See DP Results
         </button>
       </form>
 

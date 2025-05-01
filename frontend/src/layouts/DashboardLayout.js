@@ -6,7 +6,7 @@ import '../dashboard.css';
 export default function DashboardLayout({ children }) {
   const menuItems = [
     { name: 'Data Input', icon: FaChartLine, path: '/' },
-    { name: 'Privacy Info', icon: FaLock, path: '/privacy' },
+    { name: 'Privacy Playground', icon: FaLock, path: '/playground' },
     { name: 'About', icon: FaInfoCircle, path: '/about' }
   ];
 
