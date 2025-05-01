@@ -54,19 +54,19 @@ const exponentialRandomNoise = (trueBin, epsilon) => {
   }
 };
 
-export default function PrivacyForm() {
+export default function PrivacyPlaygroundForm() {
   const [formData, setFormData] = useState({
     incomeBin: '',
     netWorth: '',
     rentOrMortgage: '',
     loanDebt: '',
     medicalExpenses: '',
+    dp_mechanism: ''
   });
 
   const [epsilon, setEpsilon] = useState(1.0);
+  const [privatizedData, setPrivatizedData] = useState(null);
   const [errors, setErrors] = useState([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showModal, setShowModal] = useState(false);
 
   const incomeLabels = [
     "Less than $20k",
@@ -90,71 +90,118 @@ export default function PrivacyForm() {
     });
   };
 
-  const privatizeData = async () => {
-    const errs = [];
-    const { netWorth, incomeBin } = formData;
-    if (!netWorth || isNaN(netWorth)) errs.push('Net Worth must be valid.');
-    if (!incomeBin) errs.push('Income must be selected.');
-    if (isNaN(epsilon) || epsilon <= 0) errs.push('Epsilon must be > 0.');
-    if (errs.length) return setErrors(errs);
-
-    setErrors([]);
-    const income = parseFloat(incomeBin);
-    const numBins = 5;
-
-    // Optional OpenDP call (net worth only)
-    const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ netWorth, epsilon })
-    });
-    const { netWorthDP } = await flask_response.json();
-
-    setFormData({
-      ...formData,
-      incomeBin: randomizedResponseBinned(income, epsilon, numBins),
-      netWorth: netWorthDP,
-      rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
-      loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
-      medicalExpenses: addLaplaceNoise(formData.medicalExpenses, epsilon)
-    });
-
-    setShowModal(true); 
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    const payload = {
-      user_id: generateRandomUserID(),
-      epsilon: epsilon,
-      income_bin_real: parseFloat(formData.incomeBin),
-      income_bin_noisy: parseFloat(formData.incomeBin),
-      net_worth_real: formData.netWorth,
-      net_worth_noisy: formData.netWorth,
-      rent_or_mortgage_real: formData.rentOrMortgage,
-      rent_or_mortgage_noisy: formData.rentOrMortgage,
-      loan_debt_real: formData.loanDebt,
-      loan_debt_noisy: formData.loanDebt,
-      medical_expenses_real: formData.medicalExpenses,
-      medical_expenses_noisy: formData.medicalExpenses,
-    };
 
-    console.log("Submitting data...");
-    await fetch('http://127.0.0.1:5000/submit_data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+    const errs = [];
+    if (!formData.netWorth || isNaN(formData.netWorth)) errs.push('Net Worth is required and must be a number.');
+    if (!formData.incomeBin) errs.push('Income range is required.');
+    if (isNaN(epsilon) || epsilon <= 0) errs.push('Epsilon must be a positive number.');
+    if (!formData.dp_mechanism) errs.push('Please select a DP mechanism.');
+    if (errs.length) { setErrors(errs); return; }
+    setErrors([]);
+
+    if (
+      formData.netWorth === '' ||
+      isNaN(formData.netWorth) ||
+      isNaN(epsilon) ||
+      epsilon <= 0 ||
+      formData.incomeBin === '' ||
+      isNaN(parseFloat(formData.incomeBin))
+    ) {
+      alert('Please fill out all fields and ensure epsilon and net worth are valid numbers.');
+      return;
+    }
+
+    const incomeBin = parseFloat(formData.incomeBin);
+    const numBins = 5;
+
+    const testing_open_dp = {
+      netWorth: formData.netWorth,
+      epsilon: epsilon
+    }
+    const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(testing_open_dp)
     });
 
-    setIsSubmitting(false);
-    setShowModal(false);
-  }
+    const open_dp_data = await flask_response.json();
+
+    console.log("OPEN DP DATA: ", open_dp_data);
+    let noisy_income = null;
+    let noisy_netWorth = null;
+    let noisy_rent = null;
+    let noisy_loanDebt = null;
+    let noisy_medical = null;
+    console.log("DP MECHANISM: ", formData.dp_mechanism);
+    if (formData.dp_mechanism == 0) {
+      noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
+      noisy_netWorth = open_dp_data.netWorthDP;
+      console.log(noisy_netWorth)
+    }
+    else if (formData.dp_mechanism == 1) {
+      noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
+      noisy_netWorth = open_dp_data.netWorthDP;
+    }
+    else if (formData.dp_mechanism == 2) {
+      setPrivatizedData(null); 
+      alert("Shuffle DP injects local noise and then anonymizes when k responses are received on the server side.");
+      return; 
+    }
+    else if (formData.dp_mechanism == 3) {
+      setPrivatizedData(null); 
+      alert("Personalized DP allows users to have fine-grained access over their own privacy parameters. See our DP Query Portal for more information.");
+      return; 
+    }
+
+    noisy_rent = formData.rentOrMortgage;
+    noisy_loanDebt = formData.loanDebt;
+    noisy_medical = formData.medicalExpenses;
+    console.log("NOISY NET WORTH: ", noisy_netWorth);
+    const payload = {
+      user_id: generateRandomUserID(),
+      is_personalized: formData.dp_mechanism == 3, // TRUE only for Personalized DP
+      epsilon: epsilon,
+      dp_mechanism: formData.dp_mechanism,
+      income_bin_real: incomeBin,
+      income_bin_noisy: noisy_income,
+      net_worth_real: formData.netWorth,
+      net_worth_noisy: noisy_netWorth,
+      rent_or_mortgage_real: formData.rentOrMortgage,
+      rent_or_mortgage_noisy: noisy_rent,
+      loan_debt_real: formData.loanDebt,
+      loan_debt_noisy: noisy_loanDebt,
+      medical_expenses_real: formData.medicalExpenses,
+      medical_expenses_noisy: noisy_medical
+    };
+
+    // Only send to server for Shuffle and Personalized DP
+    // if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
+    //   console.log("Submitting data...");
+    //   await fetch('http://127.0.0.1:5000/submit_data', {
+    //       method: 'POST',
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //       },
+    //       body: JSON.stringify(payload),
+    //   });
+    // }
+    console.log(noisy_income);
+
+    const noisyData = {
+      incomeBin: Math.floor(noisy_income),
+      netWorth: noisy_netWorth,
+      rentOrMortgage: noisy_rent,
+      loanDebt: noisy_loanDebt,
+      medicalExpenses: noisy_medical,
+    };
+    setPrivatizedData(noisyData);
+  };
 
   return (
-    
     <div className="p-6 max-w-xl mx-auto bg-white shadow-md rounded-xl space-y-6">
       {errors.length > 0 && (
         <div className="bg-red-100 border border-red-300 p-4 rounded">
@@ -165,7 +212,7 @@ export default function PrivacyForm() {
       )}
       <h1 className="text-2xl font-bold">Privacy-Preserving Data Collector</h1>
 
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="form-control w-full">
           <label className="label"><span className="label-text">Net Worth (USD)</span></label>
           <input type="number" name="netWorth" value={formData.netWorth} onChange={handleChange} className="input input-bordered w-full" />
@@ -209,43 +256,45 @@ export default function PrivacyForm() {
           />
           <span className="text-sm text-gray-600">ε: {epsilon} ({getPrivacyLevel(epsilon)} privacy)</span>
         </div>
+        <div className="form-control w-full">
+          <label className="label"><span className="label-text">DP Mechanism</span></label>
+          <select
+            name="dp_mechanism"
+            value={formData.dp_mechanism}
+            onChange={handleChange}
+            className="select select-bordered w-full"
+          >
+            <option value="">Select</option>
+            <option value="0">Randomized Response</option>
+            <option value="1">Exponential</option>
+            <option value="2">Shuffle</option>
+            <option value="3">Personalized DP</option>
+          </select>
+        </div>
+        {formData.dp_mechanism && (
+          <p className="text-sm text-gray-600 italic">{mechanismDescriptions[formData.dp_mechanism]}</p>
+        )}
         <button
-          type="button" onClick={privatizeData}
-          className="btn btn-primary"
-        >
-          Privatize My Data
-        </button>
-        {/* <button
           type="submit"
           className="btn btn-primary"
         >
-          Submit
-        </button> */}
+          See DP Results
+        </button>
       </form>
-      {showModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
-      <h2 className="text-xl font-semibold mb-4">Ready to submit privatized data?</h2>
-      <p className="mb-6 text-sm text-gray-600">
-        Your form has been privatized. Click "Submit" to send, or "Cancel" to go back.
-      </p>
-      <div className="flex justify-center gap-4">
-        <button
-          onClick={handleSubmit}
-          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
-        >
-          Submit
-        </button>
-        <button
-          onClick={() => setShowModal(false)}
-          className="bg-gray-400 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+
+      {privatizedData && (
+        <div className="mt-6 p-4 bg-gray-100 rounded">
+          <h2 className="text-lg font-semibold mb-2">Privatized Output</h2>
+          <pre className="text-sm mb-2">
+            {JSON.stringify(privatizedData, null, 2)}
+          </pre>
+          {typeof privatizedData.incomeBin === 'number' && (
+            <p className="text-sm text-gray-700">
+              Privatized Income Bin: {incomeLabels[privatizedData.incomeBin]}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

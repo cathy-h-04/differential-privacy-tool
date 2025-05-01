@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import PrivacyForm from './PrivacyForm';
+import PrivacyPlaygroundForm from './PrivacyPlaygroundForm';
 import DataVisualization from './DataVisualization';
 import DashboardLayout from './layouts/DashboardLayout';
 import InfoCard from './components/InfoCard';
+import PrivacyForm from './PrivacyForm';
 import './App.css';
 
 function App() {
@@ -38,7 +39,7 @@ function App() {
             <div className="space-y-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white rounded-xl shadow-lg p-6">
-                  <PrivacyForm onDataSubmit={handleDataSubmit} />
+                  <PrivacyPlaygroundForm onDataSubmit={handleDataSubmit} />
                 </div>
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <DataVisualization privatizedData={privatizedData} epsilon={epsilon} />
@@ -57,6 +58,9 @@ function App() {
                     description={info.description}
                   />
                 ))}
+              </div>
+              <div className="mt-6">
+                <PrivacyForm />
               </div>
             </div>
           } />
@@ -77,31 +81,3 @@ function App() {
 }
 
 export default App;
-
-
-
-// import logo from './logo.svg';
-// import './App.css';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.js</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
-
-// export default App;
