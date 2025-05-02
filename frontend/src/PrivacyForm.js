@@ -37,6 +37,7 @@ const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
 };
 
 const exponentialRandomNoise = (trueBin, epsilon) => {
+  console.log("ACTUAL GLOBAL EPSILON: ", epsilon);
   const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
   const actualValue = centerBin[trueBin];
   const utilityValue = (a, b) => -(Math.abs(a - b));
@@ -59,6 +60,7 @@ const exponentialRandomNoise = (trueBin, epsilon) => {
 
 export default function PrivacyForm() {
   const [formData, setFormData] = useState({
+    epsilon: '',
     incomeBin: '',
     netWorth: '',
     rentOrMortgage: '',
@@ -66,7 +68,7 @@ export default function PrivacyForm() {
     medicalExpenses: '',
   });
 
-  const [epsilon, setEpsilon] = useState(2.0);
+  const [epsilonGlobal, setEpsilonGlobal] = useState(2.0);
   const [errors, setErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -85,7 +87,7 @@ export default function PrivacyForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const numericFields = new Set(['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses']);
+    const numericFields = new Set(['epsilon', 'netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses']);
 
     setFormData({
       ...formData,
@@ -98,28 +100,20 @@ export default function PrivacyForm() {
     const { netWorth, incomeBin } = formData;
     if (!netWorth || isNaN(netWorth)) errs.push('Net Worth must be valid.');
     if (!incomeBin) errs.push('Income must be selected.');
-    if (isNaN(epsilon) || epsilon <= 0) errs.push('Epsilon must be > 0.');
     if (errs.length) return setErrors(errs);
 
     setErrors([]);
     const income = parseFloat(incomeBin);
     const numBins = 5;
 
-    // Optional OpenDP call (net worth only)
-    const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ netWorth, epsilon })
-    });
-    const { netWorthDP } = await flask_response.json();
-
     setFormData({
       ...formData,
-      incomeBin: exponentialRandomNoise(income, epsilon),
-      netWorth: exponentialRandomNoise(binData(netWorth), epsilon),
-      rentOrMortgage: exponentialRandomNoise(binData(formData.rentOrMortgage), epsilon),
-      loanDebt: exponentialRandomNoise(binData(formData.loanDebt), epsilon),
-      medicalExpenses: exponentialRandomNoise(binData(formData.medicalExpenses), epsilon), 
+      epsilon: formData.epsilon,
+      incomeBin: exponentialRandomNoise(income, epsilonGlobal),
+      netWorth: exponentialRandomNoise(binData(netWorth), epsilonGlobal),
+      rentOrMortgage: exponentialRandomNoise(binData(formData.rentOrMortgage), epsilonGlobal),
+      loanDebt: exponentialRandomNoise(binData(formData.loanDebt),epsilonGlobal),
+      medicalExpenses: exponentialRandomNoise(binData(formData.medicalExpenses),epsilonGlobal), 
     });
 
     setShowModal(true); 
@@ -131,7 +125,7 @@ export default function PrivacyForm() {
     console.log(formData.epsilon);
     const payload = {
       user_id: generateRandomUserID(),
-      epsilon: epsilon,
+      epsilon: formData.epsilon,
       income_bin: parseFloat(formData.incomeBin),
       net_worth: formData.netWorth,
       rent_or_mortgage: formData.rentOrMortgage,
@@ -202,11 +196,11 @@ export default function PrivacyForm() {
             min="0.1"
             max="100"
             step="0.1"
-            value={epsilon}
-            onChange={(e) => setEpsilon(parseFloat(e.target.value))}
+            value={formData.epsilon}
+            onChange={(e) => setFormData(prev => ({ ...prev, epsilon: parseFloat(e.target.value) }))}
             className="range range-primary w-full"
           />
-          <span className="text-sm text-gray-600">ε: {epsilon} ({getPrivacyLevel(epsilon)} privacy)</span>
+          <span className="text-sm text-gray-600"> ε: {formData.epsilon} ({getPrivacyLevel(formData.epsilon)} privacy)</span>
         </div>
         <button
           type="button" onClick={privatizeData}
