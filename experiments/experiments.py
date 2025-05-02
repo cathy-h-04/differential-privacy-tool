@@ -3,6 +3,7 @@ import random
 import numpy as np
 import opendp.prelude as dp
 import pandas as pd 
+import matplotlib.pyplot as plt
 
 dp.enable_features("honest-but-curious", "contrib")
 
@@ -23,7 +24,7 @@ def exponential(true_bin, epsilon):
     for i, p in enumerate(probs):
         count += p 
         if rand < count:
-            return i 
+            return center_bin[i] 
         
 def laplace(val, epsilon):
     laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=750000/epsilon)
@@ -32,13 +33,14 @@ def laplace(val, epsilon):
     return dp_val
 
 def randomized_response(true_bin, epsilon, num_bins):
+    bins = [20000, 40000, 60000, 100000, 200000, 300000, 400000, 500000, 1000000]
     p = math.exp(epsilon) / (math.exp(epsilon) + num_bins - 1)
     random_value = random.random()
 
     if random_value < p:
-        return true_bin
+        return bins[true_bin]
     other_bins = [b for b in range(num_bins) if b != true_bin]
-    return random.choice(other_bins)
+    return bins[random.choice(other_bins)]
 
 def bin_data(val):
     bins = [20000, 40000, 60000, 100000, 200000, 300000, 400000, 500000, float('inf')]
@@ -58,7 +60,7 @@ def experiments(trials, epsilon):
     for _ in range(trials):
         net_worth = random.uniform(0, 1000000)  
         rent_or_mortgage = random.uniform(0, 1000000) 
-        loan_debt = random.uniform(0, 100000)  
+        loan_debt = random.uniform(0, 1000000)  
         medical_expenses = random.uniform(0, 1000000)  
         income_bins = ["Less than $20k", "$20k–$40k", "$40k–$60k", "$60k–$100k", "100k-200k", "200k-300k", "300k-400k", "400k-500k", ">500k"]
         income_bin_index = random.randint(0, len(income_bins) - 1)
@@ -97,14 +99,80 @@ def experiments(trials, epsilon):
     rr_df = pd.DataFrame(rr_results, columns = cols)
     shuffle_df = pd.DataFrame(shuffle_results, columns = cols)
 
-    true_df.to_csv('true.csv', index=False)
-    laplace_df.to_csv('laplace.csv', index=False)
-    exp_df.to_csv('exponential.csv', index=False)
-    rr_df.to_csv('randomized_response.csv', index=False)
-    shuffle_df.to_csv('shuffle_with_rr.csv', index=False)
+    return true_df, laplace_df, exp_df, rr_df, shuffle_df
 
-experiments(1000, 2)
+def compute_stats(true_df, priv_df, col):
+    pred_vals = priv_df[col].astype(float)
+    true_vals = true_df[col].astype(float)
+    std = (pred_vals - true_vals).std()
+    bias = (pred_vals - true_vals).mean()
+    return std, bias
+
+def monte_carlo(epsilon):
+    laplace_std, laplace_bias = [], []
+    exp_std, exp_bias = [], []
+    rr_std, rr_bias = [], []
+    shuffle_std, shuffle_bias = [], []
+
+    n_values = list(range(100, 10000, 100))
+    for n in n_values:
+        true_df, laplace_df, exp_df, rr_df, shuffle_df = experiments(n, epsilon)
+        col = 'Net Worth'
+
+        if laplace_df[col].isnull().all():
+            laplace_std.append(np.nan)
+            laplace_bias.append(np.nan)
+        else:
+            std, rms = compute_stats(true_df, laplace_df, col)
+            laplace_std.append(std)
+            laplace_bias.append(rms)
+
+        std, rms = compute_stats(true_df, exp_df, col)
+        exp_std.append(std)
+        exp_bias.append(rms)
+
+        std, rms = compute_stats(true_df, rr_df, col)
+        rr_std.append(std)
+        rr_bias.append(rms)
+
+        std, rms = compute_stats(true_df, shuffle_df, col)
+        shuffle_std.append(std)
+        shuffle_bias.append(rms)
+
+    return {
+        "Laplace": {"std": laplace_std, "bias": laplace_bias},
+        "Exponential": {"std": exp_std, "bias": exp_bias},
+        "Randomized Response": {"std": rr_std, "bias": rr_bias},
+        "Shuffled RR": {"std": shuffle_std, "bias": shuffle_bias},
+    }
+    # return { "Exponential": {"std": exp_std, "bias": exp_bias},
+    #          "Randomized Response": {"std": rr_std, "bias": rr_bias}}
 
 
+def plot_results(results, n_values):
+    plt.figure(figsize=(12, 6))
 
+    for mech, data in results.items():
+        plt.plot(n_values, data['bias'], label=mech)
+    plt.xlabel("n")
+    plt.ylabel("Bias")
+    plt.title("Bias vs Sample Size (n)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("bias_cont.png")
+    plt.show()
 
+    plt.figure(figsize=(12, 6))
+    for mech, data in results.items():
+        plt.plot(n_values, data['std'], label=mech)
+    plt.xlabel("n")
+    plt.ylabel("Standard Deviation")
+    plt.title("STD vs Sample Size (n)")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig("stddev_cont.png")
+    plt.show()
+
+results = monte_carlo(2)
+plot_results(results, list(range(100, 10000, 100)))
