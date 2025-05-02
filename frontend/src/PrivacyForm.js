@@ -7,11 +7,23 @@ function generateRandomUserID() {
   return uuidv4();
 }
 
+function binData(val) {
+  const bins = [20000, 40000, 60000, 100000, 200000, 300000, 400000, 500000, Infinity];
+  for (let i = 0; i < bins.length; i++) {
+    if (val <= bins[i]) {
+      return i;
+    }
+  }
+}
+
+
 const addLaplaceNoise = (value, epsilon) => {
   const scale = 1 / epsilon;
   const u = Math.random() - 0.5;
   return value - scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
 };
+
+
 
 const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
   const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
@@ -103,11 +115,11 @@ export default function PrivacyForm() {
 
     setFormData({
       ...formData,
-      incomeBin: randomizedResponseBinned(income, epsilon, numBins),
-      netWorth: netWorthDP,
-      rentOrMortgage: addLaplaceNoise(formData.rentOrMortgage, epsilon),
-      loanDebt: addLaplaceNoise(formData.loanDebt, epsilon),
-      medicalExpenses: addLaplaceNoise(formData.medicalExpenses, epsilon)
+      incomeBin: exponentialRandomNoise(income, epsilon),
+      netWorth: exponentialRandomNoise(binData(netWorth), epsilon),
+      rentOrMortgage: exponentialRandomNoise(binData(formData.rentOrMortgage), epsilon),
+      loanDebt: exponentialRandomNoise(binData(formData.loanDebt), epsilon),
+      medicalExpenses: exponentialRandomNoise(binData(formData.medicalExpenses), epsilon), 
     });
 
     setShowModal(true); 
@@ -116,9 +128,10 @@ export default function PrivacyForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    console.log(formData.epsilon);
     const payload = {
       user_id: generateRandomUserID(),
-      epsilon: formData.epsilon,
+      epsilon: epsilon,
       income_bin: parseFloat(formData.incomeBin),
       net_worth: formData.netWorth,
       rent_or_mortgage: formData.rentOrMortgage,

@@ -16,6 +16,7 @@ source venv/bin/activate
   cd backend
   pip install -r requirements.txt
   python3 database_setup.py
+  python3 shuffle_database_setup.py
   python3 server.py
   ```
 
@@ -26,3 +27,7 @@ source venv/bin/activate
   npm install
   npm start
   ```
+
+### Quick Guide
+- /Data Input 
+This is our home page and also contains the main form we are trying to privatize. Fill in the values of the form and click "See 
