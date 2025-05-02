@@ -20,8 +20,8 @@ MIN_BATCH_SIZE = 10  # Minimum reports needed to process a batch
 def laplace_noise(scale):
     return np.random.laplace(loc=0.0, scale=scale)
 
-def privatize_personalized(data, threshold=1.0):
-    user_epsilon = data['epsilon']
+def privatize_personalized(row, threshold=1.0):
+    user_epsilon = row['epsilon']
 
     if user_epsilon >= threshold:
         sampling_prob = 1.0
@@ -31,11 +31,11 @@ def privatize_personalized(data, threshold=1.0):
     if random.random() <= sampling_prob:
         scale = 1.0 / threshold
         return {
-            "income_bin": data["income_bin_real"],
-            "net_worth": data["net_worth_real"] + laplace_noise(scale),
-            "rent_or_mortgage": data["rent_or_mortgage_real"] + laplace_noise(scale),
-            "loan_debt": data["loan_debt_real"] + laplace_noise(scale),
-            "medical_expenses": data["medical_expenses_real"] + laplace_noise(scale)
+            "income_bin": row["income_bin_real"],
+            "net_worth": row["net_worth_real"] + laplace_noise(scale),
+            "rent_or_mortgage": row["rent_or_mortgage_real"] + laplace_noise(scale),
+            "loan_debt": row["loan_debt_real"] + laplace_noise(scale),
+            "medical_expenses": row["medical_expenses_real"] + laplace_noise(scale)
         }
     else:
         return {
@@ -46,24 +46,58 @@ def privatize_personalized(data, threshold=1.0):
             "medical_expenses": None
         }
 
+@app.route('/personalized_query', methods=['POST'])
+def personalized_query():
+    try:
+        data = request.get_json()
+        where_clause = data.get('where', '')
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+
+        query = f"SELECT * FROM user_reports"
+        if where_clause.strip():
+            query += f" WHERE {where_clause}"
+
+        c.execute(query)
+        rows = c.fetchall()
+        conn.close()
+
+        result = []
+        for row in rows:
+            privatized = privatize_personalized(row)
+            # If tuple was sampled, include it in results
+            if any(value is not None for value in privatized.values()):
+                result.append({
+                    "user_id": row["user_id"],
+                    "epsilon": row["epsilon"],
+                    **privatized
+                })
+
+        return jsonify({"status": "success", "count": len(result), "results": result}), 200
+
+    except Exception as e:
+        print(f"Error in /personalized_query: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 def insert_shuffle_record(data):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     c.execute('''
         INSERT INTO user_reports (
-            user_id, is_personalized, epsilon, dp_mechanism,
+            user_id, epsilon, 
             income_bin_real, income_bin_noisy,
             net_worth_real, net_worth_noisy,
             rent_or_mortgage_real, rent_or_mortgage_noisy,
             loan_debt_real, loan_debt_noisy,
             medical_expenses_real, medical_expenses_noisy
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data['user_id'],
-        int(data['is_personalized']),
         data['epsilon'],
-        int(data['dp_mechanism']),
         data['income_bin_real'],
         data['income_bin_noisy'],
         data['net_worth_real'],
@@ -85,7 +119,7 @@ def process_shuffle_batch_if_ready():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0 AND dp_mechanism = 2')
+    c.execute('SELECT COUNT(*) FROM user_reports WHERE is_processed = 0')
     unprocessed_count = c.fetchone()[0]
 
     if unprocessed_count < MIN_BATCH_SIZE:
@@ -93,7 +127,7 @@ def process_shuffle_batch_if_ready():
         return  # Not enough shuffle records yet
 
     # Enough records: fetch and shuffle
-    c.execute('SELECT * FROM user_reports WHERE is_processed = 0 AND dp_mechanism = 2 ORDER BY id ASC LIMIT ?', (MIN_BATCH_SIZE,))
+    c.execute('SELECT * FROM user_reports WHERE is_processed = 0 ORDER BY id ASC LIMIT ?', (MIN_BATCH_SIZE,))
     rows = list(c.fetchall())
     random.shuffle(rows)
 
@@ -184,18 +218,10 @@ def submit_data():
     try:
         data = request.get_json()
 
-        # personalized dp
-        if data['dp_mechanism'] == 3:
-            privatized = privatize_personalized(data)
-            return jsonify({
-                "status": "success",
-                "message": "Personalized DP applied immediately.",
-        "privatized_data": privatized
-    }), 200
-
-        else:
-            insert_shuffle_record(data)
-            process_shuffle_batch_if_ready()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        insert_shuffle_record(data)
+        process_shuffle_batch_if_ready()
 
         return jsonify({"status": "success", "message": "Submitted. Shuffling triggered if batch ready."}), 200
 

@@ -11,9 +11,7 @@ c.execute('''
 CREATE TABLE IF NOT EXISTS user_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT NOT NULL,
-    is_personalized BOOLEAN NOT NULL,
     epsilon REAL NOT NULL,
-    dp_mechanism INTEGER NOT NULL,
     income_bin_real INTEGER NOT NULL,
     income_bin_noisy INTEGER NOT NULL,
     net_worth_real REAL NOT NULL,
