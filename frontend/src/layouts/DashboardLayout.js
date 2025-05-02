@@ -8,7 +8,7 @@ export default function DashboardLayout({ children }) {
     { name: 'Data Input', icon: FaChartLine, path: '/' },
     { name: 'Privacy Playground', icon: FaLock, path: '/playground' },
     { name: 'About', icon: FaInfoCircle, path: '/about' },
-    { name: 'Run Query', icon: FaChartLine, path: '/query' }  // ✅ New
+    { name: 'Run Query', icon: FaChartLine, path: '/query' }  
   ];
 
   return (
