@@ -31,7 +31,7 @@ def randomized_response_binned(true_bin, epsilon, num_bins):
 def laplace_noise(scale):
     return np.random.laplace(loc=0.0, scale=scale)
 
-def privatize_personalized(row, threshold=1.0):
+def privatize_personalized(row, threshold=2.0):
     user_epsilon = row['epsilon']
     num_bins = 5 
 
