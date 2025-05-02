@@ -41,3 +41,7 @@ Here, user can experiment with different mechanisms to see their results. Note t
 
 - /Run Query
 Build a SQL query using the interface. On the server side, the query is executed. For every row that is queried, we apply personalzied DP, looking up the row's personal epsilon, running the personal DP mechanism, and determining whether to include the row or not. 
+
+
+### Other functionalities
+- There is a shuffled database. After 10 user records are received, the code applies shuffling, and writes to the shuffled database. You can think of the shuffled database as what the aggregator actually receives. 
