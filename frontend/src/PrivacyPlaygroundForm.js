@@ -7,7 +7,8 @@ const mechanismDescriptions = {
   '0': 'Randomized Response: adds privacy by randomizing responses.',
   '1': 'Exponential Mechanism: selects outputs with probability based on utility.',
   '2': 'Shuffle: shuffles data for privacy.',
-  '3': 'Shuffle-Private: shuffle with personalized privacy guarantees.'
+  '3': 'Shuffle-Private: shuffle with personalized privacy guarantees.',
+  '4': 'Laplace: adds noise drawn from a Laplace distribution; categorical data will be obfuscated using Randomized Response'
 };
 
 const getPrivacyLevel = (eps) => eps <= 1 ? 'High' : eps <= 5 ? 'Medium' : 'Low';
@@ -48,6 +49,15 @@ const exponentialRandomNoise = (trueBin, epsilon) => {
     }
   }
 };
+
+function binData(val) {
+  const bins = [20000, 40000, 60000, 100000, 200000, 300000, 400000, 500000, Infinity];
+  for (let i = 0; i < bins.length; i++) {
+    if (val <= bins[i]) {
+      return i;
+    }
+  }
+}
 
 export default function PrivacyPlaygroundForm() {
   const [formData, setFormData] = useState({
@@ -112,21 +122,21 @@ export default function PrivacyPlaygroundForm() {
     const incomeBin = parseFloat(formData.incomeBin);
     const numBins = 5;
 
-    const testing_open_dp = {
-      netWorth: formData.netWorth,
-      epsilon: epsilon
-    }
-    const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(testing_open_dp)
-    });
+    // const testing_open_dp = {
+    //   netWorth: formData.netWorth,
+    //   epsilon: epsilon
+    // }
+    // const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify(testing_open_dp)
+    // });
 
-    const open_dp_data = await flask_response.json();
+    // const open_dp_data = await flask_response.json();
 
-    console.log("OPEN DP DATA: ", open_dp_data);
+    // console.log("OPEN DP DATA: ", open_dp_data);
     let noisy_income = null;
     let noisy_netWorth = null;
     let noisy_rent = null;
@@ -135,13 +145,21 @@ export default function PrivacyPlaygroundForm() {
     console.log("DP MECHANISM: ", formData.dp_mechanism);
     if (formData.dp_mechanism == 0) {
       noisy_income = randomizedResponseBinned(incomeBin, globalEpsilon, numBins);
-      noisy_netWorth = open_dp_data.netWorthDP;
-      console.log("GLOBAL EPSILON: ", globalEpsilon)
+      noisy_netWorth = randomizedResponseBinned(binData(formData.netWorth), globalEpsilon, numBins);
+      noisy_rent = randomizedResponseBinned(binData(formData.rentOrMortgage), globalEpsilon, numBins);
+      noisy_loanDebt = randomizedResponseBinned(binData(formData.loanDebt), globalEpsilon, numBins);
+      noisy_medical = randomizedResponseBinned(binData(formData.medical), globalEpsilon, numBins);
+      //noisy_netWorth = open_dp_data.netWorthDP;
+      // console.log("GLOBAL EPSILON: ", globalEpsilon)
     }
     else if (formData.dp_mechanism == 1) {
-      noisy_income = exponentialRandomNoise(incomeBin, globalEpsilon, numBins);
-      noisy_netWorth = open_dp_data.netWorthDP;
-      console.log(globalEpsilon)
+      noisy_income = exponentialRandomNoise(incomeBin, globalEpsilon);
+      noisy_netWorth = exponentialRandomNoise(binData(formData.netWorth), globalEpsilon);
+      noisy_rent = exponentialRandomNoise(binData(formData.rentOrMortgage), globalEpsilon);
+      noisy_loanDebt = exponentialRandomNoise(binData(formData.loanDebt), globalEpsilon);
+      noisy_medical = exponentialRandomNoise(binData(formData.medical), globalEpsilon);
+      //noisy_netWorth = open_dp_data.netWorthDP;
+      //console.log(globalEpsilon)
     }
     else if (formData.dp_mechanism == 2) {
       setPrivatizedData(null); 
@@ -152,6 +170,23 @@ export default function PrivacyPlaygroundForm() {
       setPrivatizedData(null); 
       alert("Personalized DP allows users to have fine-grained access over their own privacy parameters. See our DP Query Portal for more information.");
       return; 
+    }
+    else if (formData.dp_mechanism == 4){
+      send_to_open_dp = {
+        rent: formData.rentOrMortgage,
+        netWorth: formData.netWorth,
+        loanDebt: formData.loanDebt,
+        medical: formData.medical,
+        epsilon: epsilon
+      }
+      const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(send_to_open_dp)
+      });
+      alert("The Laplace mechanism is typically a centralized DP mechanism that adds noise drawn from a Laplace distribution to every data point");
     }
 
     noisy_rent = formData.rentOrMortgage;
