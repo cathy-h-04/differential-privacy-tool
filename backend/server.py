@@ -213,6 +213,7 @@ def laplace():
 
 @app.route('/submit_data', methods=['POST'])
 def submit_data():
+    conn = sqlite3.connect(DB_PATH)
     try:
         data = request.get_json()
 
@@ -227,6 +228,8 @@ def submit_data():
         print(f"Error in /submit_data: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+    finally:
+        conn.close()  
 
 if __name__ == '__main__':
     app.run()

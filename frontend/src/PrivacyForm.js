@@ -53,15 +53,15 @@ const exponentialRandomNoise = (trueBin, epsilon) => {
   for (let i = 0; i < prob.length; i++) {
     val += prob[i];
     if (val >= random) {
-      return i;
+      return centerBin[i];
     }
   }
 };
 
 export default function PrivacyForm() {
   const [formData, setFormData] = useState({
-    epsilon: '',
-    incomeBin: '',
+    epsilon: 2.0,
+    incomeBin: 0,
     netWorth: '',
     rentOrMortgage: '',
     loanDebt: '',
@@ -87,7 +87,7 @@ export default function PrivacyForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const numericFields = new Set(['epsilon', 'netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses']);
+    const numericFields = new Set(['epsilon','netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses']);
 
     setFormData({
       ...formData,
@@ -122,15 +122,15 @@ export default function PrivacyForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    console.log(formData.epsilon);
+    console.log("EPSILON IN SUBMISSION", formData.epsilon);
     const payload = {
       user_id: generateRandomUserID(),
-      epsilon: formData.epsilon,
-      income_bin: parseFloat(formData.incomeBin),
-      net_worth: formData.netWorth,
-      rent_or_mortgage: formData.rentOrMortgage,
-      loan_debt: formData.loanDebt,
-      medical_expenses: formData.medicalExpenses,
+      epsilon: parseFloat(formData.epsilon),
+      income_bin: parseInt(formData.incomeBin),
+      net_worth: parseFloat(formData.netWorth),
+      rent_or_mortgage: parseFloat(formData.rentOrMortgage),
+      loan_debt: parseFloat(formData.loanDebt),
+      medical_expenses: parseFloat(formData.medicalExpenses),
     };
 
     console.log("Submitting data...");

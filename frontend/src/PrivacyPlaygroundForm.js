@@ -59,9 +59,11 @@ export default function PrivacyPlaygroundForm() {
     dp_mechanism: ''
   });
 
-  const [epsilon, setEpsilon] = useState(1.0);
+  const [epsilon, setEpsilon] = useState(2.0);
   const [privatizedData, setPrivatizedData] = useState(null);
   const [errors, setErrors] = useState([]);
+  const [globalEpsilon] = useState(1.0); // used for local DP only
+
 
   const incomeLabels = [
     "Less than $20k",
@@ -91,7 +93,6 @@ export default function PrivacyPlaygroundForm() {
     const errs = [];
     if (!formData.netWorth || isNaN(formData.netWorth)) errs.push('Net Worth is required and must be a number.');
     if (!formData.incomeBin) errs.push('Income range is required.');
-    if (isNaN(epsilon) || epsilon <= 0) errs.push('Epsilon must be a positive number.');
     if (!formData.dp_mechanism) errs.push('Please select a DP mechanism.');
     if (errs.length) { setErrors(errs); return; }
     setErrors([]);
@@ -133,13 +134,14 @@ export default function PrivacyPlaygroundForm() {
     let noisy_medical = null;
     console.log("DP MECHANISM: ", formData.dp_mechanism);
     if (formData.dp_mechanism == 0) {
-      noisy_income = randomizedResponseBinned(incomeBin, epsilon, numBins);
+      noisy_income = randomizedResponseBinned(incomeBin, globalEpsilon, numBins);
       noisy_netWorth = open_dp_data.netWorthDP;
-      console.log(noisy_netWorth)
+      console.log("GLOBAL EPSILON: ", globalEpsilon)
     }
     else if (formData.dp_mechanism == 1) {
-      noisy_income = exponentialRandomNoise(incomeBin, epsilon, numBins);
+      noisy_income = exponentialRandomNoise(incomeBin, globalEpsilon, numBins);
       noisy_netWorth = open_dp_data.netWorthDP;
+      console.log(globalEpsilon)
     }
     else if (formData.dp_mechanism == 2) {
       setPrivatizedData(null); 
