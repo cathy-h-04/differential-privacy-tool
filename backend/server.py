@@ -5,6 +5,8 @@ import sqlite3
 import os
 import random
 import numpy as np
+import random
+import math
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "database.db")
@@ -13,15 +15,25 @@ dp.enable_features("honest-but-curious", "contrib")
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
 
+
 MIN_BATCH_SIZE = 10  # Minimum reports needed to process a batch
 
 # ------------------------ Helper Functions ------------------------
 
+def randomized_response_binned(true_bin, epsilon, num_bins):
+    p = math.exp(epsilon) / (math.exp(epsilon) + num_bins - 1)
+    if random.random() < p:
+        return true_bin
+    else:
+        other_bins = [b for b in range(num_bins) if b != true_bin]
+        return random.choice(other_bins)
+    
 def laplace_noise(scale):
     return np.random.laplace(loc=0.0, scale=scale)
 
 def privatize_personalized(row, threshold=1.0):
     user_epsilon = row['epsilon']
+    num_bins = 5 
 
     if user_epsilon >= threshold:
         sampling_prob = 1.0
@@ -31,11 +43,11 @@ def privatize_personalized(row, threshold=1.0):
     if random.random() <= sampling_prob:
         scale = 1.0 / threshold
         return {
-            "income_bin": row["income_bin_real"],
-            "net_worth": row["net_worth_real"] + laplace_noise(scale),
-            "rent_or_mortgage": row["rent_or_mortgage_real"] + laplace_noise(scale),
-            "loan_debt": row["loan_debt_real"] + laplace_noise(scale),
-            "medical_expenses": row["medical_expenses_real"] + laplace_noise(scale)
+            "income_bin": randomized_response_binned(row["income_bin"], threshold, num_bins),
+            "net_worth": row["net_worth"] + laplace_noise(scale),
+            "rent_or_mortgage": row["rent_or_mortgage"] + laplace_noise(scale),
+            "loan_debt": row["loan_debt"] + laplace_noise(scale),
+            "medical_expenses": row["medical_expenses"] + laplace_noise(scale)
         }
     else:
         return {
@@ -60,20 +72,26 @@ def personalized_query():
         if where_clause.strip():
             query += f" WHERE {where_clause}"
 
+        print(f"Executing SQL: {query}")
         c.execute(query)
         rows = c.fetchall()
         conn.close()
 
         result = []
+        total = len(rows)
+        included = 0
+
         for row in rows:
             privatized = privatize_personalized(row)
-            # If tuple was sampled, include it in results
+
             if any(value is not None for value in privatized.values()):
+                included += 1
+                print(f"Included user_id={row['user_id']}, ε={row['epsilon']}")
                 result.append({
-                    "user_id": row["user_id"],
-                    "epsilon": row["epsilon"],
                     **privatized
                 })
+            else:
+                print(f"Dropped user_id={row['user_id']} due to sampling (ε={row['epsilon']})")
 
         return jsonify({"status": "success", "count": len(result), "results": result}), 200
 
@@ -82,32 +100,24 @@ def personalized_query():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+
 def insert_shuffle_record(data):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
     c.execute('''
         INSERT INTO user_reports (
-            user_id, epsilon, 
-            income_bin_real, income_bin_noisy,
-            net_worth_real, net_worth_noisy,
-            rent_or_mortgage_real, rent_or_mortgage_noisy,
-            loan_debt_real, loan_debt_noisy,
-            medical_expenses_real, medical_expenses_noisy
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            user_id, epsilon, income_bin, net_worth, rent_or_mortgage,
+            loan_debt, medical_expenses
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
         data['user_id'],
         data['epsilon'],
-        data['income_bin_real'],
-        data['income_bin_noisy'],
-        data['net_worth_real'],
-        data['net_worth_noisy'],
-        data['rent_or_mortgage_real'],
-        data['rent_or_mortgage_noisy'],
-        data['loan_debt_real'],
-        data['loan_debt_noisy'],
-        data['medical_expenses_real'],
-        data['medical_expenses_noisy']
+        data['income_bin'],
+        data['net_worth'],
+        data['rent_or_mortgage'],
+        data['loan_debt'],
+        data['medical_expenses'],
     ))
 
     conn.commit()
@@ -148,31 +158,18 @@ def write_shuffled_rows(rows):
     conn_shuffle = sqlite3.connect(SHUFFLE_DB_PATH)
     c_shuffle = conn_shuffle.cursor()
 
-    # Create clean table if needed
-    c_shuffle.execute('''
-        CREATE TABLE IF NOT EXISTS shuffled_user_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            income_bin_noisy INTEGER NOT NULL,
-            net_worth_noisy REAL NOT NULL,
-            rent_or_mortgage_noisy REAL NOT NULL,
-            loan_debt_noisy REAL NOT NULL,
-            medical_expenses_noisy REAL NOT NULL
-        );
-    ''')
-    conn_shuffle.commit()
-
     for row in rows:
         c_shuffle.execute('''
             INSERT INTO shuffled_user_reports (
-                income_bin_noisy, net_worth_noisy,
-                rent_or_mortgage_noisy, loan_debt_noisy, medical_expenses_noisy
+                income_bin, net_worth,
+                rent_or_mortgage, loan_debt, medical_expenses
             ) VALUES (?, ?, ?, ?, ?)
         ''', (
-            row["income_bin_noisy"],
-            row["net_worth_noisy"],
-            row["rent_or_mortgage_noisy"],
-            row["loan_debt_noisy"],
-            row["medical_expenses_noisy"]
+            row["income_bin"],
+            row["net_worth"],
+            row["rent_or_mortgage"],
+            row["loan_debt"],
+            row["medical_expenses"]
         ))
 
     conn_shuffle.commit()

@@ -12,16 +12,11 @@ CREATE TABLE IF NOT EXISTS user_reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT NOT NULL,
     epsilon REAL NOT NULL,
-    income_bin_real INTEGER NOT NULL,
-    income_bin_noisy INTEGER NOT NULL,
-    net_worth_real REAL NOT NULL,
-    net_worth_noisy REAL NOT NULL,
-    rent_or_mortgage_real REAL NOT NULL,
-    rent_or_mortgage_noisy REAL NOT NULL,
-    loan_debt_real REAL NOT NULL,
-    loan_debt_noisy REAL NOT NULL,
-    medical_expenses_real REAL NOT NULL,
-    medical_expenses_noisy REAL NOT NULL,
+    income_bin INTEGER NOT NULL,
+    net_worth REAL NOT NULL,
+    rent_or_mortgage REAL NOT NULL,
+    loan_debt REAL NOT NULL,
+    medical_expenses REAL NOT NULL,
     is_processed BOOLEAN DEFAULT 0
 );
 ''')

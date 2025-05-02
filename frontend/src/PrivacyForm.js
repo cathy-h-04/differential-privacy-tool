@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-const numericFields = new Set(['netWorth', 'rentOrMortgage', 'loanDebt', 'medicalExpenses', 'incomeBin']);
-
-const mechanismDescriptions = {
-  '0': 'Randomized Response: adds privacy by randomizing responses.',
-  '1': 'Exponential Mechanism: selects outputs with probability based on utility.',
-  '2': 'Shuffle: shuffles data for privacy.',
-  '3': 'Shuffle-Private: shuffle with personalized privacy guarantees.'
-};
-
 const getPrivacyLevel = (eps) => eps <= 1 ? 'High' : eps <= 5 ? 'Medium' : 'Low';
 
 function generateRandomUserID() {
@@ -63,7 +54,7 @@ export default function PrivacyForm() {
     medicalExpenses: '',
   });
 
-  const [epsilon, setEpsilon] = useState(1.0);
+  const [epsilon, setEpsilon] = useState(2.0);
   const [errors, setErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -127,17 +118,12 @@ export default function PrivacyForm() {
     setIsSubmitting(true);
     const payload = {
       user_id: generateRandomUserID(),
-      epsilon: epsilon,
-      income_bin_real: parseFloat(formData.incomeBin),
-      income_bin_noisy: parseFloat(formData.incomeBin),
-      net_worth_real: formData.netWorth,
-      net_worth_noisy: formData.netWorth,
-      rent_or_mortgage_real: formData.rentOrMortgage,
-      rent_or_mortgage_noisy: formData.rentOrMortgage,
-      loan_debt_real: formData.loanDebt,
-      loan_debt_noisy: formData.loanDebt,
-      medical_expenses_real: formData.medicalExpenses,
-      medical_expenses_noisy: formData.medicalExpenses,
+      epsilon: formData.epsilon,
+      income_bin: parseFloat(formData.incomeBin),
+      net_worth: formData.netWorth,
+      rent_or_mortgage: formData.rentOrMortgage,
+      loan_debt: formData.loanDebt,
+      medical_expenses: formData.medicalExpenses,
     };
 
     console.log("Submitting data...");

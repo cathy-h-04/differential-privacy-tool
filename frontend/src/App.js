@@ -5,6 +5,8 @@ import DataVisualization from './DataVisualization';
 import DashboardLayout from './layouts/DashboardLayout';
 import InfoCard from './components/InfoCard';
 import PrivacyForm from './PrivacyForm';
+import PersonalizedQueryPage from './Query';  
+
 import './App.css';
 
 function App() {
@@ -64,6 +66,7 @@ function App() {
               </div>
             </div>
           } />
+          <Route path="/query" element={<PersonalizedQueryPage />} />
           <Route path="/about" element={
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">About This Project</h2>

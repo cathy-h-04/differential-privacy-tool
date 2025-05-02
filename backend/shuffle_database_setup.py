@@ -10,11 +10,11 @@ c = conn.cursor()
 c.execute('''
 CREATE TABLE IF NOT EXISTS shuffled_user_reports (
     row_id INTEGER PRIMARY KEY AUTOINCREMENT, -- meaningless random ID
-    income_bin_noisy INTEGER NOT NULL,
-    net_worth_noisy REAL NOT NULL,
-    rent_or_mortgage_noisy REAL NOT NULL,
-    loan_debt_noisy REAL NOT NULL,
-    medical_expenses_noisy REAL NOT NULL,
+    income_bin INTEGER NOT NULL,
+    net_worth REAL NOT NULL,
+    rent_or_mortgage REAL NOT NULL,
+    loan_debt REAL NOT NULL,
+    medical_expenses REAL NOT NULL,
     is_processed BOOLEAN DEFAULT 0
 );
 ''')

@@ -7,7 +7,8 @@ export default function DashboardLayout({ children }) {
   const menuItems = [
     { name: 'Data Input', icon: FaChartLine, path: '/' },
     { name: 'Privacy Playground', icon: FaLock, path: '/playground' },
-    { name: 'About', icon: FaInfoCircle, path: '/about' }
+    { name: 'About', icon: FaInfoCircle, path: '/about' },
+    { name: 'Run Query', icon: FaChartLine, path: '/query' }  // ✅ New
   ];
 
   return (
