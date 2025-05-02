@@ -178,6 +178,7 @@ def write_shuffled_rows(rows):
 
 # ------------------------ Flask Endpoints ------------------------
 
+
 @app.route('/laplace', methods=['POST'])
 def laplace():
     try:

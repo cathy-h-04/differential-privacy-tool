@@ -16,11 +16,6 @@ function generateRandomUserID() {
   return uuidv4();
 }
 
-const addLaplaceNoise = (value, epsilon) => {
-  const scale = 1 / epsilon;
-  const u = Math.random() - 0.5;
-  return value - scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
-};
 
 const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
   const p = Math.exp(epsilon) / (Math.exp(epsilon) + numBins - 1);
