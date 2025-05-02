@@ -36,27 +36,25 @@ const randomizedResponseBinned = (trueBin, epsilon, numBins) => {
   return otherBins[Math.floor(Math.random() * otherBins.length)];
 };
 
-const exponentialRandomNoise = (trueBin, epsilon) => {
-  console.log("ACTUAL GLOBAL EPSILON: ", epsilon);
+const exponentialRandomNoise = (trueBin, epsilon, returnIndex = false) => {
   const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
   const actualValue = centerBin[trueBin];
-  const utilityValue = (a, b) => -(Math.abs(a - b));
+  const utilityValue = (a, b) => -Math.abs(a - b);
   const scoreValue = centerBin.map(value => Math.exp((epsilon * utilityValue(actualValue, value)) / 740000));
-  let probTotal = 0;
-  for (const score of scoreValue) {
-    probTotal += score;
-  }
-  const prob = scoreValue.map(scoreValue => scoreValue / probTotal);
+  
+  const probTotal = scoreValue.reduce((a, b) => a + b, 0);
+  const prob = scoreValue.map(score => score / probTotal);
 
   const random = Math.random();
-  let val = 0;
+  let acc = 0;
   for (let i = 0; i < prob.length; i++) {
-    val += prob[i];
-    if (val >= random) {
-      return centerBin[i];
+    acc += prob[i];
+    if (acc >= random) {
+      return returnIndex ? i : centerBin[i];
     }
   }
 };
+
 
 export default function PrivacyForm() {
   const [formData, setFormData] = useState({
@@ -109,11 +107,11 @@ export default function PrivacyForm() {
     setFormData({
       ...formData,
       epsilon: formData.epsilon,
-      incomeBin: exponentialRandomNoise(income, epsilonGlobal),
-      netWorth: exponentialRandomNoise(binData(netWorth), epsilonGlobal),
-      rentOrMortgage: exponentialRandomNoise(binData(formData.rentOrMortgage), epsilonGlobal),
-      loanDebt: exponentialRandomNoise(binData(formData.loanDebt),epsilonGlobal),
-      medicalExpenses: exponentialRandomNoise(binData(formData.medicalExpenses),epsilonGlobal), 
+      incomeBin: exponentialRandomNoise(income, epsilonGlobal, true),
+      netWorth: exponentialRandomNoise(binData(netWorth), epsilonGlobal, false),
+      rentOrMortgage: exponentialRandomNoise(binData(formData.rentOrMortgage), epsilonGlobal, false),
+      loanDebt: exponentialRandomNoise(binData(formData.loanDebt),epsilonGlobal, false),
+      medicalExpenses: exponentialRandomNoise(binData(formData.medicalExpenses),epsilonGlobal, false), 
     });
 
     setShowModal(true); 

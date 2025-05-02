@@ -30,4 +30,14 @@ source venv/bin/activate
 
 ### Quick Guide
 - /Data Input 
-This is our home page and also contains the main form we are trying to privatize. Fill in the values of the form and click "See 
+This is our home page and also contains the main form we are trying to privatize. Fill in the values of the form and click "Privatize My Data". The form autopopulates with exponential mechanism with binning for all of the fields, essentially injecting noise locally. NOTHING is sent to the server with this button. 
+After user clicks on the button, scroll down, and you will see an option to submit (only after the user clicks on privatize my data). This is what is sent server side to database.
+
+We thus enforce that all data reaching the server is privatized with epsilon of 2.0 (which we set in our code). 
+
+- /Privacy Playground
+
+Here, user can experiment with different mechanisms to see their results. Note that ONLY networth column has the mechanism applied. For shuffle and Personalized DP, this option does not really make sense for a single user to experiment on, so a modal pops up that explains these concepts. 
+
+- /Run Query
+Build a SQL query using the interface. On the server side, the query is executed. For every row that is queried, we apply personalzied DP, looking up the row's personal epsilon, running the personal DP mechanism, and determining whether to include the row or not. 

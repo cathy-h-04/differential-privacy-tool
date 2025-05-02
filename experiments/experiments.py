@@ -24,7 +24,7 @@ def exponential(true_bin, epsilon):
     for i, p in enumerate(probs):
         count += p 
         if rand < count:
-            return center_bin[i] 
+            return i
         
 def laplace(val, epsilon):
     laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=750000/epsilon)
