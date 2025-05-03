@@ -99,7 +99,7 @@ export default function PrivacyPlaygroundForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
     const errs = [];
     if (!formData.netWorth || isNaN(formData.netWorth)) errs.push('Net Worth is required and must be a number.');
     if (!formData.incomeBin) errs.push('Income range is required.');
@@ -145,19 +145,19 @@ export default function PrivacyPlaygroundForm() {
     console.log("DP MECHANISM: ", formData.dp_mechanism);
     if (formData.dp_mechanism == 0) {
       noisy_income = randomizedResponseBinned(incomeBin, globalEpsilon, numBins);
-      noisy_netWorth = randomizedResponseBinned(binData(formData.netWorth), globalEpsilon, numBins);
-      noisy_rent = randomizedResponseBinned(binData(formData.rentOrMortgage), globalEpsilon, numBins);
-      noisy_loanDebt = randomizedResponseBinned(binData(formData.loanDebt), globalEpsilon, numBins);
-      noisy_medical = randomizedResponseBinned(binData(formData.medicalExpenses), globalEpsilon, numBins);
+      noisy_netWorth = centerBin[randomizedResponseBinned(binData(formData.netWorth), globalEpsilon, numBins)];
+      noisy_rent = centerBin[randomizedResponseBinned(binData(formData.rentOrMortgage), globalEpsilon, numBins)];
+      noisy_loanDebt = centerBin[randomizedResponseBinned(binData(formData.loanDebt), globalEpsilon, numBins)];
+      noisy_medical = centerBin[randomizedResponseBinned(binData(formData.medicalExpenses), globalEpsilon, numBins)];
       //noisy_netWorth = open_dp_data.netWorthDP;
       // console.log("GLOBAL EPSILON: ", globalEpsilon)
     }
     else if (formData.dp_mechanism == 1) {
       noisy_income = exponentialRandomNoise(incomeBin, globalEpsilon);
-      noisy_netWorth = exponentialRandomNoise(binData(formData.netWorth), globalEpsilon);
-      noisy_rent = exponentialRandomNoise(binData(formData.rentOrMortgage), globalEpsilon);
-      noisy_loanDebt = exponentialRandomNoise(binData(formData.loanDebt), globalEpsilon);
-      noisy_medical = exponentialRandomNoise(binData(formData.medicalExpenses), globalEpsilon);
+      noisy_netWorth = centerBin[exponentialRandomNoise(binData(formData.netWorth), globalEpsilon)];
+      noisy_rent = centerBin[exponentialRandomNoise(binData(formData.rentOrMortgage), globalEpsilon)];
+      noisy_loanDebt = centerBin[exponentialRandomNoise(binData(formData.loanDebt), globalEpsilon)];
+      noisy_medical = centerBin[exponentialRandomNoise(binData(formData.medicalExpenses), globalEpsilon)];
       //noisy_netWorth = open_dp_data.netWorthDP;
       //console.log(globalEpsilon)
     }
