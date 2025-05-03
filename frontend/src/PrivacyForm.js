@@ -58,12 +58,12 @@ const exponentialRandomNoise = (trueBin, epsilon, returnIndex = false) => {
 
 export default function PrivacyForm() {
   const [formData, setFormData] = useState({
-    epsilon: 2.0,
-    incomeBin: 0,
+    incomeBin: '', // Default set to "select a range"
+    epsilon: 1.0,
     netWorth: '',
     rentOrMortgage: '',
     loanDebt: '',
-    medicalExpenses: '',
+    medicalExpenses: ''
   });
 
   const [epsilonGlobal, setEpsilonGlobal] = useState(2.0);
