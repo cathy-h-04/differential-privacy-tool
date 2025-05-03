@@ -148,7 +148,7 @@ export default function PrivacyPlaygroundForm() {
       noisy_netWorth = randomizedResponseBinned(binData(formData.netWorth), globalEpsilon, numBins);
       noisy_rent = randomizedResponseBinned(binData(formData.rentOrMortgage), globalEpsilon, numBins);
       noisy_loanDebt = randomizedResponseBinned(binData(formData.loanDebt), globalEpsilon, numBins);
-      noisy_medical = randomizedResponseBinned(binData(formData.medical), globalEpsilon, numBins);
+      noisy_medical = randomizedResponseBinned(binData(formData.medicalExpenses), globalEpsilon, numBins);
       //noisy_netWorth = open_dp_data.netWorthDP;
       // console.log("GLOBAL EPSILON: ", globalEpsilon)
     }
@@ -157,7 +157,7 @@ export default function PrivacyPlaygroundForm() {
       noisy_netWorth = exponentialRandomNoise(binData(formData.netWorth), globalEpsilon);
       noisy_rent = exponentialRandomNoise(binData(formData.rentOrMortgage), globalEpsilon);
       noisy_loanDebt = exponentialRandomNoise(binData(formData.loanDebt), globalEpsilon);
-      noisy_medical = exponentialRandomNoise(binData(formData.medical), globalEpsilon);
+      noisy_medical = exponentialRandomNoise(binData(formData.medicalExpenses), globalEpsilon);
       //noisy_netWorth = open_dp_data.netWorthDP;
       //console.log(globalEpsilon)
     }
@@ -172,13 +172,14 @@ export default function PrivacyPlaygroundForm() {
       return; 
     }
     else if (formData.dp_mechanism == 4){
-      send_to_open_dp = {
+      const send_to_open_dp = {
         rent: formData.rentOrMortgage,
         netWorth: formData.netWorth,
         loanDebt: formData.loanDebt,
-        medical: formData.medical,
+        medical: formData.medicalExpenses,
         epsilon: epsilon
       }
+      console.log(send_to_open_dp)
       const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
         method: 'POST',
         headers: {
@@ -186,12 +187,17 @@ export default function PrivacyPlaygroundForm() {
         },
         body: JSON.stringify(send_to_open_dp)
       });
-      alert("The Laplace mechanism is typically a centralized DP mechanism that adds noise drawn from a Laplace distribution to every data point");
+      const open_dp_data = await flask_response.json();
+      noisy_netWorth = open_dp_data.netWorthDP
+      noisy_rent = open_dp_data.rentDP 
+      noisy_loanDebt = open_dp_data.loanDP
+      noisy_medical = open_dp_data.medicalDP
+      noisy_income = randomizedResponseBinned(incomeBin, globalEpsilon, numBins)
     }
 
-    noisy_rent = formData.rentOrMortgage;
-    noisy_loanDebt = formData.loanDebt;
-    noisy_medical = formData.medicalExpenses;
+    // noisy_rent = formData.rentOrMortgage;
+    // noisy_loanDebt = formData.loanDebt;
+    // noisy_medical = formData.medicalExpenses;
     console.log("NOISY NET WORTH: ", noisy_netWorth);
     const payload = {
       user_id: generateRandomUserID(),
@@ -301,6 +307,7 @@ export default function PrivacyPlaygroundForm() {
             <option value="1">Exponential</option>
             <option value="2">Shuffle</option>
             <option value="3">Personalized DP</option>
+            <option value="4">Laplace</option>
           </select>
         </div>
         {formData.dp_mechanism && (
