@@ -188,22 +188,41 @@ def laplace():
             return jsonify({"error": "No data provided"}), 400
 
         net_worth = data.get('netWorth')
+        rent = data.get('rent')
+        loan_debt = data.get('loanDebt')
+        medical = data.get('medical')
         epsilon = data.get('epsilon')
 
-        if net_worth is None or epsilon is None:
-            return jsonify({"error": "Missing netWorth or epsilon"}), 400
+        if epsilon is None:
+            return jsonify({"error": "Missing epsilon"}), 400
+        elif net_worth is None:
+            return jsonify({"error": "Missing net worth"}), 400
+        elif rent is None:
+            return jsonify({"error": "Missing rent"}), 400
+        elif loan_debt is None:
+            return jsonify({"error": "Missing loan debt"}), 400
+        elif medical is None:
+            return jsonify({"error": "Missing medical expenses"}), 400
 
-        net_worth = float(net_worth)
+        net_worth = np.clip(float(net_worth), 0, 1000000)
+        rent = np.clip(float(rent), 0, 1000000)
+        loan_debt = np.clip(float(loan_debt), 0, 1000000)
+        medical = np.clip(float(medical), 0, 1000000)
         epsilon = float(epsilon)
 
         if epsilon <= 0 or not (net_worth == net_worth):
             return jsonify({"error": "Invalid epsilon or net worth"}), 400
 
-        laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=750000/epsilon)
-        clamped_net_worth = np.clip(net_worth, 0, 750000)
-        dp_val = laplace_mech(clamped_net_worth)
+        laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale = 1000000/epsilon)
+        dp_val_nw = laplace_mech(net_worth)
+        dp_val_r = laplace_mech(rent)
+        dp_val_ld = laplace_mech(loan_debt)
+        dp_val_m = laplace_mech(medical)
 
-        return jsonify({'netWorthDP': dp_val})
+        return jsonify({'netWorthDP': dp_val_nw, 
+                        'rentDP': dp_val_r, 
+                        'loanDP': dp_val_ld, 
+                        'medicalDP': dp_val_m})
 
     except Exception as e:
         print(f"Error in /laplace: {e}")
