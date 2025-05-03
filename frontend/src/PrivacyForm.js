@@ -141,12 +141,12 @@ export default function PrivacyForm() {
         body: JSON.stringify(payload),
       });
   
-      const audio = new Audio('/kungfu.mp3');
+      const audio = new Audio('/kungfu_trimmed.mov');
       audio.play().catch(err => console.error("Audio play error:", err));
   
       setTimeout(() => {
         window.location.href = '/privatized';
-      }, 15000); 
+      }, 10000); 
   
     } catch (err) {
       console.error("Submission failed", err);
