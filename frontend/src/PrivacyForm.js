@@ -131,14 +131,27 @@ export default function PrivacyForm() {
       medical_expenses: parseFloat(formData.medicalExpenses),
     };
 
-    console.log("Submitting data...");
-    await fetch('http://127.0.0.1:5000/submit_data', {
+    try {
+      console.log("Submitting data...");
+      await fetch('http://127.0.0.1:5000/submit_data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-    });
+      });
+  
+      const audio = new Audio('/kungfu.mp3');
+      audio.play().catch(err => console.error("Audio play error:", err));
+  
+      setTimeout(() => {
+        window.location.href = '/privatized';
+      }, 15000); 
+  
+    } catch (err) {
+      console.error("Submission failed", err);
+    }
+
 
     setIsSubmitting(false);
     setShowModal(false);

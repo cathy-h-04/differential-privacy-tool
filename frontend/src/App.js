@@ -6,6 +6,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import InfoCard from './components/InfoCard';
 import PrivacyForm from './PrivacyForm';
 import PersonalizedQueryPage from './Query';  
+import PrivatizedPage from './PrivatizedPage';
 
 import './App.css';
 
@@ -77,6 +78,7 @@ function App() {
               </p>
             </div>
           } />
+          <Route path="/privatized" element={<PrivatizedPage />} />
         </Routes>
       </DashboardLayout>
     </Router>
