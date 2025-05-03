@@ -7,13 +7,23 @@ const mechanismDescriptions = {
   '0': 'Randomized Response: adds privacy by randomizing responses.',
   '1': 'Exponential Mechanism: selects outputs with probability based on utility.',
   '2': 'Shuffle: shuffles data for privacy.',
-  '3': 'Shuffle-Private: shuffle with personalized privacy guarantees.'
+  '3': 'Shuffle-Private: shuffle with personalized privacy guarantees.',
+  '4': 'Laplace: adds noise drawn from a Laplace distribution; categorical data will be obfuscated using Randomized Response'
 };
-
 const getPrivacyLevel = (eps) => eps <= 1 ? 'High' : eps <= 5 ? 'Medium' : 'Low';
 
 function generateRandomUserID() {
   return uuidv4();
+}
+
+
+function binData(val) {
+  const bins = [20000, 40000, 60000, 100000, 200000, 300000, 400000, 500000, Infinity];
+  for (let i = 0; i < bins.length; i++) {
+    if (val <= bins[i]) {
+      return i;
+    }
+  }
 }
 
 
@@ -90,6 +100,7 @@ export default function PrivacyPlaygroundForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
     const errs = [];
     if (!formData.netWorth || isNaN(formData.netWorth)) errs.push('Net Worth is required and must be a number.');
     if (!formData.incomeBin) errs.push('Income range is required.');
@@ -111,37 +122,26 @@ export default function PrivacyPlaygroundForm() {
 
     const incomeBin = parseFloat(formData.incomeBin);
     const numBins = 5;
-
-    const testing_open_dp = {
-      netWorth: formData.netWorth,
-      epsilon: epsilon
-    }
-    const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(testing_open_dp)
-    });
-
-    const open_dp_data = await flask_response.json();
-
-    console.log("OPEN DP DATA: ", open_dp_data);
     let noisy_income = null;
     let noisy_netWorth = null;
     let noisy_rent = null;
     let noisy_loanDebt = null;
     let noisy_medical = null;
-    console.log("DP MECHANISM: ", formData.dp_mechanism);
+
+
     if (formData.dp_mechanism == 0) {
       noisy_income = randomizedResponseBinned(incomeBin, globalEpsilon, numBins);
-      noisy_netWorth = open_dp_data.netWorthDP;
-      console.log("GLOBAL EPSILON: ", globalEpsilon)
+      noisy_netWorth = centerBin[randomizedResponseBinned(binData(formData.netWorth), globalEpsilon, numBins)];
+      noisy_rent = centerBin[randomizedResponseBinned(binData(formData.rentOrMortgage), globalEpsilon, numBins)];
+      noisy_loanDebt = centerBin[randomizedResponseBinned(binData(formData.loanDebt), globalEpsilon, numBins)];
+      noisy_medical = centerBin[randomizedResponseBinned(binData(formData.medicalExpenses), globalEpsilon, numBins)];
     }
     else if (formData.dp_mechanism == 1) {
-      noisy_income = exponentialRandomNoise(incomeBin, globalEpsilon, numBins);
-      noisy_netWorth = open_dp_data.netWorthDP;
-      console.log(globalEpsilon)
+      noisy_income = exponentialRandomNoise(incomeBin, globalEpsilon);
+      noisy_netWorth = centerBin[exponentialRandomNoise(binData(formData.netWorth), globalEpsilon)];
+      noisy_rent = centerBin[exponentialRandomNoise(binData(formData.rentOrMortgage), globalEpsilon)];
+      noisy_loanDebt = centerBin[exponentialRandomNoise(binData(formData.loanDebt), globalEpsilon)];
+      noisy_medical = centerBin[exponentialRandomNoise(binData(formData.medicalExpenses), globalEpsilon)];
     }
     else if (formData.dp_mechanism == 2) {
       setPrivatizedData(null); 
@@ -153,40 +153,31 @@ export default function PrivacyPlaygroundForm() {
       alert("Personalized DP allows users to have fine-grained access over their own privacy parameters. See our DP Query Portal for more information.");
       return; 
     }
+    else if (formData.dp_mechanism == 4){
+      const send_to_open_dp = {
+        rent: formData.rentOrMortgage,
+        netWorth: formData.netWorth,
+        loanDebt: formData.loanDebt,
+        medical: formData.medicalExpenses,
+        epsilon: epsilon
+      }
+      console.log(send_to_open_dp)
+      const flask_response = await fetch('http://127.0.0.1:5000/laplace', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(send_to_open_dp)
+      });
+      const open_dp_data = await flask_response.json();
+      noisy_netWorth = open_dp_data.netWorthDP
+      noisy_rent = open_dp_data.rentDP 
+      noisy_loanDebt = open_dp_data.loanDP
+      noisy_medical = open_dp_data.medicalDP
+      noisy_income = randomizedResponseBinned(incomeBin, globalEpsilon, numBins)
+    }
 
-    noisy_rent = formData.rentOrMortgage;
-    noisy_loanDebt = formData.loanDebt;
-    noisy_medical = formData.medicalExpenses;
     console.log("NOISY NET WORTH: ", noisy_netWorth);
-    const payload = {
-      user_id: generateRandomUserID(),
-      is_personalized: formData.dp_mechanism == 3, // TRUE only for Personalized DP
-      epsilon: epsilon,
-      dp_mechanism: formData.dp_mechanism,
-      income_bin_real: incomeBin,
-      income_bin_noisy: noisy_income,
-      net_worth_real: formData.netWorth,
-      net_worth_noisy: noisy_netWorth,
-      rent_or_mortgage_real: formData.rentOrMortgage,
-      rent_or_mortgage_noisy: noisy_rent,
-      loan_debt_real: formData.loanDebt,
-      loan_debt_noisy: noisy_loanDebt,
-      medical_expenses_real: formData.medicalExpenses,
-      medical_expenses_noisy: noisy_medical
-    };
-
-    // Only send to server for Shuffle and Personalized DP
-    // if (formData.dp_mechanism == 2 || formData.dp_mechanism == 3) {
-    //   console.log("Submitting data...");
-    //   await fetch('http://127.0.0.1:5000/submit_data', {
-    //       method: 'POST',
-    //       headers: {
-    //         'Content-Type': 'application/json',
-    //       },
-    //       body: JSON.stringify(payload),
-    //   });
-    // }
-    console.log(noisy_income);
 
     const noisyData = {
       incomeBin: Math.floor(noisy_income),
@@ -266,6 +257,7 @@ export default function PrivacyPlaygroundForm() {
             <option value="1">Exponential</option>
             <option value="2">Shuffle</option>
             <option value="3">Personalized DP</option>
+            <option value="4">Laplace</option>
           </select>
         </div>
         {formData.dp_mechanism && (
