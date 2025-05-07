@@ -40,7 +40,7 @@ const exponentialRandomNoise = (trueBin, epsilon, returnIndex = false) => {
   const centerBin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000];
   const actualValue = centerBin[trueBin];
   const utilityValue = (a, b) => -Math.abs(a - b);
-  const scoreValue = centerBin.map(value => Math.exp((epsilon * utilityValue(actualValue, value)) / 740000));
+  const scoreValue = centerBin.map(value => Math.exp((epsilon * utilityValue(actualValue, value)) / (2*740000)));
   
   const probTotal = scoreValue.reduce((a, b) => a + b, 0);
   const prob = scoreValue.map(score => score / probTotal);

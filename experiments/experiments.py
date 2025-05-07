@@ -13,9 +13,9 @@ def utility(a, b):
 def exponential(true_bin, epsilon):
     center_bin = [10000, 30000, 50000, 80000, 150000, 250000, 350000, 450000, 750000]
     actual_val = center_bin[true_bin]
-    sensitivity = 1000000
+    sensitivity = 740000
 
-    scores = [math.exp((epsilon * utility(actual_val, val)) / sensitivity) for val in center_bin]
+    scores = [math.exp((epsilon * utility(actual_val, val)) / (2 * sensitivity)) for val in center_bin]
     total = sum(scores)
     probs = [score / total for score in scores]
 
@@ -27,7 +27,7 @@ def exponential(true_bin, epsilon):
             return i
         
 def laplace(val, epsilon):
-    laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=750000/epsilon)
+    laplace_mech = dp.m.make_laplace(dp.atom_domain(T=float), dp.absolute_distance(T=float), scale=1000000/epsilon)
     clamped_net_worth = np.clip(val, 0, 1000000)
     dp_val = laplace_mech(clamped_net_worth)
     return dp_val
@@ -114,7 +114,7 @@ def monte_carlo(epsilon):
     rr_std, rr_bias = [], []
     shuffle_std, shuffle_bias = [], []
 
-    n_values = list(range(100, 10000, 100))
+    n_values = list(range(100, 10100, 100))
     for n in n_values:
         true_df, laplace_df, exp_df, rr_df, shuffle_df = experiments(n, epsilon)
         col = 'Net Worth'
