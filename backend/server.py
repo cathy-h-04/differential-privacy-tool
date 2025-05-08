@@ -41,13 +41,12 @@ def privatize_personalized(row, threshold=2.0):
         sampling_prob = (np.exp(user_epsilon) - 1) / (np.exp(threshold) - 1)
 
     if random.random() <= sampling_prob:
-        scale = 1.0 / threshold
         return {
-            "income_bin": randomized_response_binned(row["income_bin"], threshold, num_bins),
-            "net_worth": row["net_worth"] + laplace_noise(scale),
-            "rent_or_mortgage": row["rent_or_mortgage"] + laplace_noise(scale),
-            "loan_debt": row["loan_debt"] + laplace_noise(scale),
-            "medical_expenses": row["medical_expenses"] + laplace_noise(scale)
+            "income_bin": row["income_bin"],
+            "net_worth": row["net_worth"],
+            "rent_or_mortgage": row["rent_or_mortgage"],
+            "loan_debt": row["loan_debt"],
+            "medical_expenses": row["medical_expenses"]
         }
     else:
         return {
