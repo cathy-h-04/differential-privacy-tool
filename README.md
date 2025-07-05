@@ -10,6 +10,17 @@ python3 -m venv venv
 2. Then, activate the environment
 source venv/bin/activate
 
+## Project Description
+The Differential Privacy Tool is an innovative platform designed to enhance data privacy by implementing differential privacy mechanisms. It provides users with a comprehensive environment to explore and apply privacy-preserving techniques.
+
+### Key Features
+- **Privacy Playground**: An interactive space where users can experiment with various differential privacy mechanisms. This feature allows users to understand the impact of different privacy parameters and techniques on data.
+
+- **Data Privatization Form**: Users can input their data into a form that applies differential privacy techniques to ensure their information remains confidential. The data is then shuffled to further anonymize it before any analysis.
+
+- **Personalized Differential Privacy**: This feature allows users to execute personalized queries with tailored privacy settings. Users can adjust privacy parameters to suit their specific needs and observe the effects on query results.
+
+
 ### Backend
 - Navigate to the backend folder:
   ```bash
